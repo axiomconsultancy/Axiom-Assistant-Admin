@@ -1,9 +1,18 @@
+'use client'
 import avatar1 from '@/assets/images/users/avatar-1.jpg'
 import IconifyIcon from '@/components/wrapper/IconifyIcon'
+import { useAuth } from '@/context/useAuthContext'
 import Image from 'next/image'
 import { Dropdown, DropdownHeader, DropdownItem, DropdownMenu, DropdownToggle } from 'react-bootstrap'
 
 const ProfileDropdown = () => {
+  const { user, signOut } = useAuth()
+
+  const handleLogout = (e: React.MouseEvent) => {
+    e.preventDefault()
+    signOut()
+  }
+
   return (
     <Dropdown className=" topbar-item">
       <DropdownToggle
@@ -24,7 +33,15 @@ const ProfileDropdown = () => {
         </span>
       </DropdownToggle>
       <DropdownMenu className=" dropdown-menu-end">
-        <DropdownHeader>Welcome!</DropdownHeader>
+        <DropdownHeader>
+          <div className="mb-0 fw-medium">{user?.username || 'User'}</div>
+          <small className="text-muted">{user?.email || 'user@example.com'}</small>
+          {user?.role && (
+            <div>
+              <span className="badge bg-primary mt-1">{user.role}</span>
+            </div>
+          )}
+        </DropdownHeader>
         <DropdownItem href="">
           <IconifyIcon icon="solar:user-outline" className="align-middle me-2 fs-18" />
           <span className="align-middle">My Account</span>
@@ -42,7 +59,7 @@ const ProfileDropdown = () => {
           <span className="align-middle">Lock screen</span>
         </DropdownItem>
         <div className="dropdown-divider my-1" />
-        <DropdownItem className=" text-danger" href="/auth/sign-in">
+        <DropdownItem className=" text-danger" onClick={handleLogout}>
           <IconifyIcon icon="solar:logout-3-outline" className="align-middle me-2 fs-18" />
           <span className="align-middle">Logout</span>
         </DropdownItem>

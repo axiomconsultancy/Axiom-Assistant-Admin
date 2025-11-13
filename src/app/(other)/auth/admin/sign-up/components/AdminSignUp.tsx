@@ -14,7 +14,7 @@ import * as yup from 'yup'
 import { Card, CardBody, Col, Row, Alert } from 'react-bootstrap'
 import type { SignUpRequest } from '@/types/auth'
 
-const SignUp = () => {
+const AdminSignUp = () => {
   const router = useRouter()
   const { signUp, isAuthenticated } = useAuth()
   const [error, setError] = useState<string | null>(null)
@@ -64,18 +64,19 @@ const SignUp = () => {
       setLoading(true)
       setError(null)
 
-      const result = await signUp(data, false) // false = user signup
+      const result = await signUp(data, true) // true = admin signup
 
       if (!result.success) {
-        setError(result.error || 'Sign up failed. Please try again.')
+        setError(result.error || 'Admin sign up failed. Please try again.')
       }
     } catch (err) {
       setError('An unexpected error occurred. Please try again.')
-      console.error('Signup error:', err)
+      console.error('Admin signup error:', err)
     } finally {
       setLoading(false)
     }
   }
+
   return (
     <>
       <div className="">
@@ -95,10 +96,10 @@ const SignUp = () => {
                         </Link>
                       </div>
                       <h4 className="fw-bold text-dark mb-2">
-                        <span className="badge bg-primary me-2">User</span>
+                        <span className="badge bg-danger me-2">Admin</span>
                         Sign Up
                       </h4>
-                      <p className="text-muted">New to our platform? Create your user account now!</p>
+                      <p className="text-muted">Create your admin account. Only authorized personnel.</p>
                     </div>
 
                     {error && (
@@ -112,9 +113,9 @@ const SignUp = () => {
                         <TextFormInput
                           control={control}
                           name="username"
-                          placeholder="Enter your username"
+                          placeholder="Enter admin username"
                           className="form-control"
-                          label="Username"
+                          label="Admin Username"
                         />
                       </div>
                       <div className="mb-3">
@@ -122,16 +123,16 @@ const SignUp = () => {
                           control={control}
                           name="email"
                           type="email"
-                          placeholder="Enter your email"
+                          placeholder="Enter admin email"
                           className="form-control"
-                          label="Email"
+                          label="Admin Email"
                         />
                       </div>
                       <div className="mb-3">
                         <PasswordFormInput
                           control={control}
                           name="password"
-                          placeholder="Enter your password (min 8 characters)"
+                          placeholder="Enter password (min 8 characters)"
                           className="form-control"
                           label="Password"
                         />
@@ -146,25 +147,25 @@ const SignUp = () => {
                       </div>
                       <div className="mb-1 text-center d-grid">
                         <button
-                          className="btn btn-dark btn-lg fw-medium"
+                          className="btn btn-danger btn-lg fw-medium"
                           type="submit"
                           disabled={loading}
                         >
-                          {loading ? 'Creating account...' : 'Sign Up'}
+                          {loading ? 'Creating admin account...' : 'Admin Sign Up'}
                         </button>
                       </div>
                     </form>
                   </CardBody>
                 </Card>
                 <p className="text-center mt-4 text-white text-opacity-50">
-                  I already have an account&nbsp;
-                  <Link href="/auth/sign-in" className="text-decoration-none text-white fw-bold">
+                  I already have an admin account&nbsp;
+                  <Link href="/auth/admin/sign-in" className="text-decoration-none text-white fw-bold">
                     Sign In
                   </Link>
                 </p>
                 <p className="text-center mt-2">
-                  <Link href="/auth/admin/sign-up" className="text-decoration-none text-white text-opacity-75">
-                    Create Admin Account →
+                  <Link href="/auth/sign-up" className="text-decoration-none text-white text-opacity-75">
+                    ← Create User Account Instead
                   </Link>
                 </p>
               </Col>
@@ -176,4 +177,5 @@ const SignUp = () => {
   )
 }
 
-export default SignUp
+export default AdminSignUp
+

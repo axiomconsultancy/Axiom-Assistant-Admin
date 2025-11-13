@@ -14,9 +14,9 @@ import { useForm } from 'react-hook-form'
 import * as yup from 'yup'
 import type { SignInRequest } from '@/types/auth'
 
-const SignIn = () => {
+const AdminSignIn = () => {
   const router = useRouter()
-  const { signIn, isAuthenticated } = useAuth()
+  const { signIn, isAuthenticated, user } = useAuth()
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 
@@ -38,7 +38,7 @@ const SignIn = () => {
     }
   }, [isAuthenticated, router])
 
-  const { handleSubmit, control } = useForm<SignInRequest>({
+  const { handleSubmit, control } = useForm({
     defaultValues: {
       email: '',
       password: '',
@@ -46,19 +46,24 @@ const SignIn = () => {
     resolver: yupResolver(messageSchema),
   })
 
-  const handleLogin = async (data: SignInRequest) => {
+  const handleLogin = async (data: any) => {
     try {
       setLoading(true)
       setError(null)
 
-      const result = await signIn(data, false) // false = user login
+      const signInData: SignInRequest = {
+        email: data.email,
+        password: data.password,
+      }
+
+      const result = await signIn(signInData, true) // true = admin login
 
       if (!result.success) {
-        setError(result.error || 'Sign in failed. Please check your credentials.')
+        setError(result.error || 'Admin sign in failed. Please check your credentials.')
       }
     } catch (err) {
       setError('An unexpected error occurred. Please try again.')
-      console.error('Login error:', err)
+      console.error('Admin login error:', err)
     } finally {
       setLoading(false)
     }
@@ -82,10 +87,10 @@ const SignIn = () => {
                       </a>
                     </div>
                     <h4 className="fw-bold text-dark mb-2">
-                      <span className="badge bg-primary me-2">User</span>
+                      <span className="badge bg-danger me-2">Admin</span>
                       Welcome Back!
                     </h4>
-                    <p className="text-muted">Sign in to your user account to continue</p>
+                    <p className="text-muted">Sign in to your admin account to continue</p>
                   </div>
 
                   {error && (
@@ -100,15 +105,12 @@ const SignIn = () => {
                         control={control}
                         name="email"
                         type="email"
-                        placeholder="Enter your email"
+                        placeholder="Enter your admin email"
                         className="form-control"
-                        label="Email Address"
+                        label="Admin Email Address"
                       />
                     </div>
                     <div className="mb-3">
-                      <Link href="/auth/reset-password" className="float-end text-muted ms-1">
-                        Forgot password?
-                      </Link>
                       <PasswordFormInput
                         control={control}
                         name="password"
@@ -126,25 +128,19 @@ const SignIn = () => {
                     </div>
                     <div className="d-grid">
                       <button
-                        className="btn btn-dark btn-lg fw-medium"
+                        className="btn btn-danger btn-lg fw-medium"
                         type="submit"
                         disabled={loading}
                       >
-                        {loading ? 'Signing in...' : 'Sign In'}
+                        {loading ? 'Signing in...' : 'Admin Sign In'}
                       </button>
                     </div>
                   </form>
                 </CardBody>
               </Card>
-              <p className="text-center mt-4 text-white text-opacity-50">
-                Don&apos;t have an account?
-                <Link href="/auth/sign-up" className="text-decoration-none text-white fw-bold ms-1">
-                  Sign Up
-                </Link>
-              </p>
-              <p className="text-center mt-2">
-                <Link href="/auth/admin/sign-in" className="text-decoration-none text-white text-opacity-75">
-                  Admin Sign In →
+              <p className="text-center mt-4">
+                <Link href="/auth/sign-in" className="text-decoration-none text-white text-opacity-75">
+                  ← Back to User Sign In
                 </Link>
               </p>
             </Col>
@@ -155,4 +151,5 @@ const SignIn = () => {
   )
 }
 
-export default SignIn
+export default AdminSignIn
+

@@ -1,3 +1,33 @@
+// User types matching backend API response
+export type UserOut = {
+  id: string
+  username: string
+  email: string
+  role: 'admin' | 'user'
+  agent_id: string | null
+  created_at: string
+}
+
+export type TokenOut = {
+  access_token: string
+  token_type: string
+  expires_in: number
+  user: UserOut
+}
+
+// Auth request types
+export type SignUpRequest = {
+  username: string
+  email: string
+  password: string
+}
+
+export type SignInRequest = {
+  email: string
+  password: string
+}
+
+// Legacy type for backward compatibility
 export type UserType = {
   id: string
   username: string
