@@ -431,7 +431,7 @@ const CallRecordsPage = () => {
                       <IconifyIcon icon="solar:filter-outline" width={20} height={20} />
                     </Button>
                     <InputGroup className="shadow-sm flex-grow-1">
-                      <InputGroup.Text className="bg-white border-end-0">
+                      <InputGroup.Text className="bg-body-secondary border-end-0">
                       <IconifyIcon icon="solar:magnifer-outline" width={20} height={20} />
                     </InputGroup.Text>
                     <Form.Control
@@ -444,12 +444,12 @@ const CallRecordsPage = () => {
                       />
                       {searchQuery && (
                         <InputGroup.Text
-                          className="bg-white border-start-0"
+                          className="bg-body-secondary border-start-0"
                           onClick={() => setSearchQuery('')}
                           style={{ cursor: 'pointer' }}
                           title="Clear search"
                         >
-                          <IconifyIcon icon="solar:close-circle-bold" width={18} height={18} style={{ color: '#dc3545' }} />
+                          <IconifyIcon icon="solar:close-circle-bold" width={18} height={18} className="text-muted" />
                         </InputGroup.Text>
                       )}
                   </InputGroup>
@@ -469,18 +469,18 @@ const CallRecordsPage = () => {
                       setFilter(e.target.value as SummaryFilters)
                       setCurrentPage(1)
                         setIsLastPage(false)
-                      }}
+                    }}
                       className="border-end-0"
                       style={{ fontSize: '0.95rem' }}
-                    >
-                      <option value="all">📋 All Records</option>
-                      <option value="read">✅ Read</option>
-                      <option value="unread">📨 Unread</option>
-                      <option value="urgent">🔥 Urgent</option>
+                  >
+                    <option value="all">All Records</option>
+                    <option value="read">Read</option>
+                    <option value="unread">Unread</option>
+                    <option value="urgent">Urgent</option>
                   </Form.Select>
                     {filter !== 'all' && (
                       <InputGroup.Text
-                        className="bg-white border-start-0"
+                        className="bg-body-secondary border-start-0"
                         onClick={() => {
                           setFilter('all')
                           setCurrentPage(1)
@@ -489,7 +489,7 @@ const CallRecordsPage = () => {
                         style={{ cursor: 'pointer' }}
                         title="Clear filter"
                       >
-                        <IconifyIcon icon="solar:close-circle-bold" width={18} height={18} style={{ color: '#dc3545' }} />
+                        <IconifyIcon icon="solar:close-circle-bold" width={18} height={18} className="text-muted" />
                       </InputGroup.Text>
                     )}
                   </InputGroup>
@@ -506,12 +506,12 @@ const CallRecordsPage = () => {
                       className="border-end-0"
                       style={{ fontSize: '0.95rem' }}
                   >
-                      <option value="newest">🔽 Newest First</option>
-                      <option value="oldest">🔼 Oldest First</option>
+                    <option value="newest">Newest First</option>
+                    <option value="oldest">Oldest First</option>
                   </Form.Select>
                     {sort !== 'newest' && (
                       <InputGroup.Text
-                        className="bg-white border-start-0"
+                        className="bg-body-secondary border-start-0"
                         onClick={() => {
                           setSort('newest')
                           setCurrentPage(1)
@@ -520,7 +520,7 @@ const CallRecordsPage = () => {
                         style={{ cursor: 'pointer' }}
                         title="Clear sort"
                       >
-                        <IconifyIcon icon="solar:close-circle-bold" width={18} height={18} style={{ color: '#dc3545' }} />
+                        <IconifyIcon icon="solar:close-circle-bold" width={18} height={18} className="text-muted" />
                       </InputGroup.Text>
                     )}
                   </InputGroup>
@@ -533,19 +533,19 @@ const CallRecordsPage = () => {
                       setTimezone(e.target.value as Timezone)
                       setCurrentPage(1)
                         setIsLastPage(false)
-                      }}
+                    }}
                       className="border-end-0"
                       style={{ fontSize: '0.95rem' }}
-                    >
-                      <option value="UTC">🌍 UTC</option>
-                      <option value="EST">🇺🇸 EST</option>
-                      <option value="CST">🇺🇸 CST</option>
-                      <option value="MST">🇺🇸 MST</option>
-                      <option value="PST">🇺🇸 PST</option>
+                  >
+                    <option value="UTC">UTC</option>
+                    <option value="EST">EST</option>
+                    <option value="CST">CST</option>
+                    <option value="MST">MST</option>
+                    <option value="PST">PST</option>
                   </Form.Select>
                     {timezone !== 'UTC' && (
                       <InputGroup.Text
-                        className="bg-white border-start-0"
+                        className="bg-body-secondary border-start-0"
                         onClick={() => {
                           setTimezone('UTC')
                           setCurrentPage(1)
@@ -554,26 +554,38 @@ const CallRecordsPage = () => {
                         style={{ cursor: 'pointer' }}
                         title="Clear timezone"
                       >
-                        <IconifyIcon icon="solar:close-circle-bold" width={18} height={18} style={{ color: '#dc3545' }} />
+                        <IconifyIcon icon="solar:close-circle-bold" width={18} height={18} className="text-muted" />
                       </InputGroup.Text>
                     )}
                   </InputGroup>
                 </Col>
+                {(filter !== 'all' || sort !== 'newest' || timezone !== 'UTC') && (
+                  <Col md="auto">
+                    <Button
+                      variant="outline-secondary"
+                      className="shadow-sm"
+                      onClick={clearFilters}
+                      title="Clear all filters"
+                      style={{ fontSize: '0.95rem' }}
+                    >
+                      <IconifyIcon icon="solar:close-circle-bold" width={18} height={18} />
+                    </Button>
+                  </Col>
+                )}
                 <Col md="auto" className="ms-auto">
-                  <div className="d-flex gap-2">
-                    <div className="position-relative">
-                      <Button
-                        variant="outline-secondary"
-                        className="shadow-sm"
-                        onClick={() => setShowColumnMenu(!showColumnMenu)}
-                        style={{ fontSize: '0.95rem' }}
-                      >
-                        <IconifyIcon icon="solar:settings-outline" width={18} height={18}  />
-                      </Button>
-                      {showColumnMenu && (
-                        <>
+                  <div className="position-relative">
+                    <Button
+                      variant={showColumnMenu ? "primary" : "outline-secondary"}
+                      className="shadow-sm"
+                      onClick={() => setShowColumnMenu(!showColumnMenu)}
+                      style={{ fontSize: '0.95rem' }}
+                    >
+                      <IconifyIcon icon="solar:settings-outline" width={18} height={18}  />
+                    </Button>
+                    {showColumnMenu && (
+                      <>
                           <div
-                            className="position-absolute bg-white border rounded shadow-lg p-3"
+                            className="position-absolute bg-body border rounded shadow-lg p-3"
                             style={{
                               top: '100%',
                               right: 0,
@@ -582,63 +594,78 @@ const CallRecordsPage = () => {
                               marginTop: '4px'
                             }}
                           >
-                            <div className="mb-2 fw-bold" style={{ fontSize: '0.9rem' }}>Show/Hide Columns</div>
-                            {Object.entries({
-                              rowNumber: '#',
-                              callerName: 'Caller Name',
-                              email: 'Email',
-                              phone: 'Phone',
-                              callTime: 'Call Time',
-                              duration: 'Duration',
-                              summary: 'Summary',
-                              status: 'Status',
-                              action: 'Action',
-                              urgency: 'Urgency',
-                              actions: 'Actions'
-                            }).map(([key, label]) => (
-                              <div key={key} className="form-check mb-2">
-                                <input
-                                  className="form-check-input"
-                                  type="checkbox"
-                                  checked={columnVisibility[key as keyof typeof columnVisibility]}
-                                  onChange={(e) => {
-                                    setColumnVisibility(prev => ({
-                                      ...prev,
-                                      [key]: e.target.checked
-                                    }))
-                                  }}
-                                  id={`col-${key}`}
-                                />
-                                <label className="form-check-label" htmlFor={`col-${key}`} style={{ fontSize: '0.9rem', cursor: 'pointer' }}>
-                                  {label}
-                                </label>
-                              </div>
-                            ))}
+                          <div className="mb-2 fw-bold" style={{ fontSize: '0.9rem' }}>Show/Hide Columns</div>
+                          <div className="form-check mb-3 pb-2 border-bottom">
+                            <input
+                              className="form-check-input"
+                              type="checkbox"
+                              checked={Object.values(columnVisibility).every(v => v)}
+                              onChange={(e) => {
+                                const allChecked = e.target.checked
+                                setColumnVisibility({
+                                  rowNumber: allChecked,
+                                  callerName: allChecked,
+                                  email: allChecked,
+                                  phone: allChecked,
+                                  callTime: allChecked,
+                                  duration: allChecked,
+                                  summary: allChecked,
+                                  status: allChecked,
+                                  action: allChecked,
+                                  urgency: allChecked,
+                                  actions: allChecked
+                                })
+                              }}
+                              id="col-select-all"
+                            />
+                            <label className="form-check-label fw-semibold" htmlFor="col-select-all" style={{ fontSize: '0.9rem', cursor: 'pointer' }}>
+                              Select All
+                            </label>
                           </div>
-                          <div
-                            className="position-fixed"
-                            style={{
-                              top: 0,
-                              left: 0,
-                              right: 0,
-                              bottom: 0,
-                              zIndex: 999
-                            }}
-                            onClick={() => setShowColumnMenu(false)}
-                          />
-                        </>
-                      )}
-                    </div>
-                    {(filter !== 'all' || sort !== 'newest' || timezone !== 'UTC') && (
-                      <Button
-                        variant="outline-danger"
-                        className="shadow-sm"
-                        onClick={clearFilters}
-                        title="Clear all filters"
-                        style={{ fontSize: '0.95rem' }}
-                      >
-                        <IconifyIcon icon="solar:close-circle-bold" width={20} height={20} />
-                      </Button>
+                          {Object.entries({
+                            rowNumber: '#',
+                            callerName: 'Caller Name',
+                            email: 'Email',
+                            phone: 'Phone',
+                            callTime: 'Call Time',
+                            duration: 'Duration',
+                            summary: 'Summary',
+                            status: 'Status',
+                            action: 'Action',
+                            urgency: 'Urgency',
+                            actions: 'Actions'
+                          }).map(([key, label]) => (
+                            <div key={key} className="form-check mb-2">
+                              <input
+                                className="form-check-input"
+                                type="checkbox"
+                                checked={columnVisibility[key as keyof typeof columnVisibility]}
+                                onChange={(e) => {
+                                  setColumnVisibility(prev => ({
+                                    ...prev,
+                                    [key]: e.target.checked
+                                  }))
+                                }}
+                                id={`col-${key}`}
+                              />
+                              <label className="form-check-label" htmlFor={`col-${key}`} style={{ fontSize: '0.9rem', cursor: 'pointer' }}>
+                                {label}
+                              </label>
+                            </div>
+                          ))}
+                        </div>
+                        <div
+                          className="position-fixed"
+                          style={{
+                            top: 0,
+                            left: 0,
+                            right: 0,
+                            bottom: 0,
+                            zIndex: 999
+                          }}
+                          onClick={() => setShowColumnMenu(false)}
+                        />
+                      </>
                     )}
                   </div>
                 </Col>
@@ -785,10 +812,7 @@ const CallRecordsPage = () => {
                         }}
                       >
                         <Table hover className="align-middle mb-0" style={{ borderCollapse: 'separate', borderSpacing: 0, minWidth: '1650px' }}>
-                          <thead style={{
-                            backgroundColor: '#f8f9fa',
-                            color: '#495057',
-                            borderBottom: '2px solid #dee2e6',
+                          <thead className="table-light" style={{
                             position: 'sticky',
                             top: 0,
                             zIndex: 100,
