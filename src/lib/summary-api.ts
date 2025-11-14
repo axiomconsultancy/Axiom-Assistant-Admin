@@ -4,7 +4,7 @@
  */
 
 import { apiClient } from './api-client'
-import type { SummaryOut, SummaryQueryParams } from '@/types/summary'
+import type { SummaryOut, SummaryQueryParams, SummaryListResponse } from '@/types/summary'
 
 export const summaryApi = {
   /**
@@ -33,7 +33,7 @@ export const summaryApi = {
     }
 
     const endpoint = `/auth/user/summaries${queryParams.toString() ? `?${queryParams.toString()}` : ''}`
-    return apiClient.get<SummaryOut[]>(endpoint, token)
+    return apiClient.get<SummaryListResponse>(endpoint, token)
   },
 }
 
