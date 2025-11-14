@@ -40,3 +40,8 @@ export interface SummaryQueryParams {
   tz?: Timezone
 }
 
+export interface SummaryListResponse {
+  summaries: SummaryOut[]
+  total: number
+}
+
