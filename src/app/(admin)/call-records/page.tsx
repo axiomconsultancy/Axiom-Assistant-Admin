@@ -319,17 +319,18 @@ const CallRecordsPage = () => {
     if (!isSticky) return {}
 
     const isRightSticky = rightStickyColumns.includes(columnKey)
-
+    
     if (isRightSticky) {
       // Stick to the right
       const right = getStickyRight(columnKey)
       return {
         position: 'sticky' as const,
         right: `${right}px`,
-        zIndex: isHeader ? 101 : 1,
-        backgroundColor: isHeader
-          ? 'var(--bs-table-bg, var(--bs-body-tertiary-bg, #f8f9fa))'
-          : 'var(--bs-body-bg, #ffffff)'
+        zIndex: isHeader ? 102 : 100,
+        boxShadow: isHeader 
+          ? 'none' 
+          : '-2px 0 4px rgba(0,0,0,0.1)',
+        isolation: 'isolate' as const
       }
     } else {
       // Stick to the left
@@ -337,12 +338,20 @@ const CallRecordsPage = () => {
       return {
         position: 'sticky' as const,
         left: `${left}px`,
-        zIndex: isHeader ? 101 : 1,
-        backgroundColor: isHeader
-          ? 'var(--bs-table-bg, var(--bs-body-tertiary-bg, #f8f9fa))'
-          : 'var(--bs-body-bg, #ffffff)'
+        zIndex: isHeader ? 102 : 100,
+        boxShadow: isHeader 
+          ? 'none' 
+          : '2px 0 4px rgba(0,0,0,0.1)',
+        isolation: 'isolate' as const
       }
     }
+  }
+
+  // Get sticky class name
+  const getStickyClassName = (columnKey: string, isHeader: boolean = false) => {
+    const isSticky = stickyColumns[columnKey as keyof typeof stickyColumns]
+    if (!isSticky) return ''
+    return isHeader ? 'sticky-column-header' : 'sticky-column-cell'
   }
 
   // Sort and paginate summaries
@@ -965,6 +974,31 @@ const CallRecordsPage = () => {
                           maxHeight: 'calc(100vh - 350px)'
                         }}
                       >
+                        <style>{`
+                          /* Ensure sticky columns have solid backgrounds */
+                          .sticky-column-header {
+                            background-color: var(--bs-body-tertiary-bg, #f8f9fa) !important;
+                            z-index: 102 !important;
+                          }
+                          .sticky-column-cell {
+                            background-color: var(--bs-body-bg, #ffffff) !important;
+                            z-index: 100 !important;
+                          }
+                          /* Dark mode support */
+                          [data-bs-theme="dark"] .sticky-column-header {
+                            background-color: var(--bs-body-tertiary-bg, #2f3943) !important;
+                          }
+                          [data-bs-theme="dark"] .sticky-column-cell {
+                            background-color: var(--bs-body-bg, #22282e) !important;
+                          }
+                          /* Ensure sticky header row is above body content */
+                          thead[style*="position: sticky"] th.sticky-column-header {
+                            z-index: 102 !important;
+                          }
+                          tbody td.sticky-column-cell {
+                            z-index: 100 !important;
+                          }
+                        `}</style>
                         <Table hover className="align-middle mb-0" style={{ borderCollapse: 'separate', borderSpacing: 0, minWidth: '1650px' }}>
                           <thead className="table-light" style={{
                             position: 'sticky',
@@ -984,7 +1018,7 @@ const CallRecordsPage = () => {
                                     letterSpacing: '0.5px',
                                     ...getStickyStyles('rowNumber', true)
                                   }}
-                                  className="text-center"
+                                  className={`text-center ${getStickyClassName('rowNumber', true)}`}
                                 >
                                   #
                                 </th>
@@ -1000,6 +1034,7 @@ const CallRecordsPage = () => {
                                     letterSpacing: '0.5px',
                                     ...getStickyStyles('callerName', true)
                                   }}
+                                  className={getStickyClassName('callerName', true)}
                                 >
                                   Caller Name
                               </th>
@@ -1015,6 +1050,7 @@ const CallRecordsPage = () => {
                                     letterSpacing: '0.5px',
                                     ...getStickyStyles('email', true)
                                   }}
+                                  className={getStickyClassName('email', true)}
                                 >
                                   Email
                               </th>
@@ -1030,6 +1066,7 @@ const CallRecordsPage = () => {
                                     letterSpacing: '0.5px',
                                     ...getStickyStyles('phone', true)
                                   }}
+                                  className={getStickyClassName('phone', true)}
                                 >
                                   Phone
                               </th>
@@ -1045,6 +1082,7 @@ const CallRecordsPage = () => {
                                     letterSpacing: '0.5px',
                                     ...getStickyStyles('callTime', true)
                                   }}
+                                  className={getStickyClassName('callTime', true)}
                                 >
                                   Call Time
                               </th>
@@ -1060,7 +1098,7 @@ const CallRecordsPage = () => {
                                     letterSpacing: '0.5px',
                                     ...getStickyStyles('duration', true)
                                   }}
-                                  className="text-center"
+                                  className={`text-center ${getStickyClassName('duration', true)}`}
                                 >
                                   Duration
                               </th>
@@ -1076,6 +1114,7 @@ const CallRecordsPage = () => {
                                     letterSpacing: '0.5px',
                                     ...getStickyStyles('summary', true)
                                   }}
+                                  className={getStickyClassName('summary', true)}
                                 >
                                   Summary
                               </th>
@@ -1091,7 +1130,7 @@ const CallRecordsPage = () => {
                                     letterSpacing: '0.5px',
                                     ...getStickyStyles('status', true)
                                   }}
-                                  className="text-center"
+                                  className={`text-center ${getStickyClassName('status', true)}`}
                                 >
                                   Status
                               </th>
@@ -1107,7 +1146,7 @@ const CallRecordsPage = () => {
                                     letterSpacing: '0.5px',
                                     ...getStickyStyles('action', true)
                                   }}
-                                  className="text-center"
+                                  className={`text-center ${getStickyClassName('action', true)}`}
                                 >
                                   Action
                               </th>
@@ -1123,7 +1162,7 @@ const CallRecordsPage = () => {
                                     letterSpacing: '0.5px',
                                     ...getStickyStyles('urgency', true)
                                   }}
-                                  className="text-center"
+                                  className={`text-center ${getStickyClassName('urgency', true)}`}
                                 >
                                   Urgency
                               </th>
@@ -1139,7 +1178,7 @@ const CallRecordsPage = () => {
                                     letterSpacing: '0.5px',
                                     ...getStickyStyles('actions', true)
                                   }}
-                                  className="text-center"
+                                  className={`text-center ${getStickyClassName('actions', true)}`}
                                 >
                                   Actions
                               </th>
@@ -1155,33 +1194,33 @@ const CallRecordsPage = () => {
                                 }}
                               >
                                 {columnVisibility.rowNumber && (
-                                  <td className="text-center" style={{ padding: '1rem 0.75rem', ...getStickyStyles('rowNumber', false) }}>
+                                  <td className={`text-center ${getStickyClassName('rowNumber', false)}`} style={{ padding: '1rem 0.75rem', ...getStickyStyles('rowNumber', false) }}>
                                     <span className="text-muted">
                                       {(currentPage - 1) * pageSize + index + 1}
                                     </span>
                                 </td>
                                 )}
                                 {columnVisibility.callerName && (
-                                  <td style={{ padding: '1rem 0.75rem', ...getStickyStyles('callerName', false) }}>
+                                  <td className={getStickyClassName('callerName', false)} style={{ padding: '1rem 0.75rem', ...getStickyStyles('callerName', false) }}>
                                     <span className="fw-medium">
                                       {summary['Caller Name'] || <span className="text-muted fst-italic">N/A</span>}
                                     </span>
                                 </td>
                                 )}
                                 {columnVisibility.email && (
-                                  <td style={{ padding: '1rem 0.75rem', ...getStickyStyles('email', false) }}>
+                                  <td className={getStickyClassName('email', false)} style={{ padding: '1rem 0.75rem', ...getStickyStyles('email', false) }}>
                                   <div className="text-truncate" style={{ maxWidth: '200px' }} title={summary['Caller Email'] || ''}>
                                       {summary['Caller Email'] || <span className="text-muted fst-italic">N/A</span>}
                                   </div>
                                 </td>
                                 )}
                                 {columnVisibility.phone && (
-                                  <td style={{ padding: '1rem 0.75rem', ...getStickyStyles('phone', false) }}>
+                                  <td className={getStickyClassName('phone', false)} style={{ padding: '1rem 0.75rem', ...getStickyStyles('phone', false) }}>
                                     {summary['Caller Number'] || <span className="text-muted fst-italic">N/A</span>}
                                   </td>
                                 )}
                                 {columnVisibility.callTime && (
-                                  <td style={{ padding: '1rem 0.75rem', fontSize: '0.9rem', ...getStickyStyles('callTime', false) }}>
+                                  <td className={getStickyClassName('callTime', false)} style={{ padding: '1rem 0.75rem', fontSize: '0.9rem', ...getStickyStyles('callTime', false) }}>
                                     {summary['Call timing'] || summary['Call Timing'] ? (
                                       <span>{formatCallTime(summary['Call timing'] || summary['Call Timing'])}</span>
                                     ) : (
@@ -1190,7 +1229,7 @@ const CallRecordsPage = () => {
                                 </td>
                                 )}
                                 {columnVisibility.duration && (
-                                  <td className="text-center" style={{ padding: '1rem 0.75rem', ...getStickyStyles('duration', false) }}>
+                                  <td className={`text-center ${getStickyClassName('duration', false)}`} style={{ padding: '1rem 0.75rem', ...getStickyStyles('duration', false) }}>
                                   {summary['Duration'] ? (
                                       <Badge bg="info" className="px-2 py-1">{summary['Duration']}</Badge>
                                   ) : (
@@ -1199,7 +1238,7 @@ const CallRecordsPage = () => {
                                 </td>
                                 )}
                                 {columnVisibility.summary && (
-                                  <td style={{ padding: '1rem 0.75rem', ...getStickyStyles('summary', false) }}>
+                                  <td className={getStickyClassName('summary', false)} style={{ padding: '1rem 0.75rem', ...getStickyStyles('summary', false) }}>
                                     <div
                                       className="text-truncate"
                                       style={{
@@ -1219,7 +1258,7 @@ const CallRecordsPage = () => {
                                 </td>
                                 )}
                                 {columnVisibility.status && (
-                                  <td className="text-center" style={{ padding: '1rem 0.75rem', ...getStickyStyles('status', false) }}>
+                                  <td className={`text-center ${getStickyClassName('status', false)}`} style={{ padding: '1rem 0.75rem', ...getStickyStyles('status', false) }}>
                                   {summary['View_Status'] ? (
                                       <Badge bg="success" className="px-2 py-1">Read</Badge>
                                   ) : (
@@ -1228,7 +1267,7 @@ const CallRecordsPage = () => {
                                 </td>
                                 )}
                                 {columnVisibility.action && (
-                                  <td className="text-center" style={{ padding: '1rem 0.75rem', ...getStickyStyles('action', false) }}>
+                                  <td className={`text-center ${getStickyClassName('action', false)}`} style={{ padding: '1rem 0.75rem', ...getStickyStyles('action', false) }}>
                                   {summary['Action_flag'] ? (
                                       <Badge
                                         bg={summary['Action_status'] === 'Done' ? 'success' : 'danger'}
@@ -1242,7 +1281,7 @@ const CallRecordsPage = () => {
                                 </td>
                                 )}
                                 {columnVisibility.urgency && (
-                                  <td className="text-center" style={{ padding: '1rem 0.75rem', ...getStickyStyles('urgency', false) }}>
+                                  <td className={`text-center ${getStickyClassName('urgency', false)}`} style={{ padding: '1rem 0.75rem', ...getStickyStyles('urgency', false) }}>
                                   {summary['Urgency'] ? (
                                       <Badge bg="danger" className="px-2 py-1">Urgent</Badge>
                                   ) : (
@@ -1251,7 +1290,7 @@ const CallRecordsPage = () => {
                                 </td>
                                 )}
                                 {columnVisibility.actions && (
-                                  <td className="text-center" style={{ padding: '1rem 0.75rem', ...getStickyStyles('actions', false) }}>
+                                  <td className={`text-center ${getStickyClassName('actions', false)}`} style={{ padding: '1rem 0.75rem', ...getStickyStyles('actions', false) }}>
                                   <div className="d-flex gap-2 justify-content-center">
                                     <Button
                                         variant="primary"
