@@ -121,7 +121,7 @@ const CallRecordsPage = () => {
                 setIsLastPage(true)
                 setHasMore(false)
                 setTotalCount(prevTotal)
-              } else {
+          } else {
                 // Fallback: just set state and let effect handle it
                 setCurrentPage(previousPage)
                 setIsLastPage(true)
@@ -177,6 +177,16 @@ const CallRecordsPage = () => {
   const handleViewDetails = (summary: SummaryOut) => {
     setSelectedSummary(summary)
     setShowDetailModal(true)
+  }
+
+  // Format call timing to remove day name and prefix
+  const formatCallTime = (timeString: string | null | undefined): string => {
+    if (!timeString) return 'N/A'
+    // Remove "Start (", ")", and the day name (e.g., "Wednesday, ")
+    let formatted = timeString.replace(/Start \([^)]*\):\s*/i, '').replace(/End \([^)]*\):\s*/i, '')
+    // Remove day name pattern (e.g., "Wednesday, ")
+    formatted = formatted.replace(/^[A-Za-z]+,\s*/, '')
+    return formatted
   }
 
   // Handle column sorting
@@ -579,7 +589,7 @@ const CallRecordsPage = () => {
                           maxWidth: '100%'
                         }}
                       >
-                        <Table hover className="align-middle mb-0" style={{ borderCollapse: 'separate', borderSpacing: 0, minWidth: '1800px' }}>
+                        <Table hover className="align-middle mb-0" style={{ borderCollapse: 'separate', borderSpacing: 0, minWidth: '1650px' }}>
                           <thead style={{
                             backgroundColor: '#f8f9fa',
                             color: '#495057',
@@ -605,272 +615,114 @@ const CallRecordsPage = () => {
                               <th
                                 style={{
                                   width: '150px',
-                                  cursor: 'pointer',
                                   borderBottom: 'none',
                                   padding: '1rem 0.75rem',
                                   fontWeight: '600',
                                   fontSize: '0.85rem',
-                                  letterSpacing: '0.5px',
-                                  transition: 'background-color 0.2s'
+                                  letterSpacing: '0.5px'
                                 }}
-                                onClick={() => handleSort('Caller Name')}
-                                className="user-select-none"
-                                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#e9ecef'}
-                                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                               >
-                                <div className="d-flex align-items-center gap-2">
                                   Caller Name
-                                  {sortColumn === 'Caller Name' && (
-                                    <IconifyIcon
-                                      icon={sortDirection === 'asc' ? 'solar:alt-arrow-up-outline' : 'solar:alt-arrow-down-outline'}
-                                      width={14}
-                                      height={14}
-                                    />
-                                  )}
-                                </div>
                               </th>
                               <th
                                 style={{
                                   width: '200px',
-                                  cursor: 'pointer',
                                   borderBottom: 'none',
                                   padding: '1rem 0.75rem',
                                   fontWeight: '600',
                                   fontSize: '0.85rem',
-                                  letterSpacing: '0.5px',
-                                  transition: 'background-color 0.2s'
+                                  letterSpacing: '0.5px'
                                 }}
-                                onClick={() => handleSort('Caller Email')}
-                                className="user-select-none"
-                                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#e9ecef'}
-                                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                               >
-                                <div className="d-flex align-items-center gap-2">
                                   Email
-                                  {sortColumn === 'Caller Email' && (
-                                    <IconifyIcon
-                                      icon={sortDirection === 'asc' ? 'solar:alt-arrow-up-outline' : 'solar:alt-arrow-down-outline'}
-                                      width={14}
-                                      height={14}
-                                    />
-                                  )}
-                                </div>
                               </th>
                               <th
                                 style={{
                                   width: '130px',
-                                  cursor: 'pointer',
                                   borderBottom: 'none',
                                   padding: '1rem 0.75rem',
                                   fontWeight: '600',
                                   fontSize: '0.85rem',
-                                  letterSpacing: '0.5px',
-                                  transition: 'background-color 0.2s'
+                                  letterSpacing: '0.5px'
                                 }}
-                                onClick={() => handleSort('Caller Number')}
-                                className="user-select-none"
-                                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#e9ecef'}
-                                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                               >
-                                <div className="d-flex align-items-center gap-2">
                                   Phone
-                                  {sortColumn === 'Caller Number' && (
-                                    <IconifyIcon
-                                      icon={sortDirection === 'asc' ? 'solar:alt-arrow-up-outline' : 'solar:alt-arrow-down-outline'}
-                                      width={14}
-                                      height={14}
-                                    />
-                                  )}
-                                </div>
                               </th>
                               <th
                                 style={{
-                                  width: '150px',
-                                  cursor: 'pointer',
+                                  width: '200px',
                                   borderBottom: 'none',
                                   padding: '1rem 0.75rem',
                                   fontWeight: '600',
                                   fontSize: '0.85rem',
-                                  letterSpacing: '0.5px',
-                                  transition: 'background-color 0.2s'
+                                  letterSpacing: '0.5px'
                                 }}
-                                onClick={() => handleSort('Call timing')}
-                                className="user-select-none"
-                                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#e9ecef'}
-                                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                               >
-                                <div className="d-flex align-items-center gap-2">
-                                  Start Time
-                                  {sortColumn === 'Call timing' && (
-                                    <IconifyIcon
-                                      icon={sortDirection === 'asc' ? 'solar:alt-arrow-up-outline' : 'solar:alt-arrow-down-outline'}
-                                      width={14}
-                                      height={14}
-                                    />
-                                  )}
-                                </div>
-                              </th>
-                              <th
-                                style={{
-                                  width: '150px',
-                                  cursor: 'pointer',
-                                  borderBottom: 'none',
-                                  padding: '1rem 0.75rem',
-                                  fontWeight: '600',
-                                  fontSize: '0.85rem',
-                                  letterSpacing: '0.5px',
-                                  transition: 'background-color 0.2s'
-                                }}
-                                onClick={() => handleSort('End Call timing')}
-                                className="user-select-none"
-                                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#e9ecef'}
-                                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                              >
-                                <div className="d-flex align-items-center gap-2">
-                                  End Time
-                                  {sortColumn === 'End Call timing' && (
-                                    <IconifyIcon
-                                      icon={sortDirection === 'asc' ? 'solar:alt-arrow-up-outline' : 'solar:alt-arrow-down-outline'}
-                                      width={14}
-                                      height={14}
-                                    />
-                                  )}
-                                </div>
+                                  Call Time
                               </th>
                               <th
                                 style={{
                                   width: '120px',
-                                  cursor: 'pointer',
                                   borderBottom: 'none',
                                   padding: '1rem 0.75rem',
                                   fontWeight: '600',
                                   fontSize: '0.85rem',
-                                  letterSpacing: '0.5px',
-                                  transition: 'background-color 0.2s'
+                                  letterSpacing: '0.5px'
                                 }}
-                                onClick={() => handleSort('Duration')}
-                                className="text-center user-select-none"
-                                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#e9ecef'}
-                                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                                className="text-center"
                               >
-                                <div className="d-flex align-items-center justify-content-center gap-2">
                                   Duration
-                                  {sortColumn === 'Duration' && (
-                                    <IconifyIcon
-                                      icon={sortDirection === 'asc' ? 'solar:alt-arrow-up-outline' : 'solar:alt-arrow-down-outline'}
-                                      width={14}
-                                      height={14}
-                                    />
-                                  )}
-                                </div>
                               </th>
                               <th
                                 style={{
                                   width: '250px',
-                                  cursor: 'pointer',
                                   borderBottom: 'none',
                                   padding: '1rem 0.75rem',
                                   fontWeight: '600',
                                   fontSize: '0.85rem',
-                                  letterSpacing: '0.5px',
-                                  transition: 'background-color 0.2s'
+                                  letterSpacing: '0.5px'
                                 }}
-                                onClick={() => handleSort('Brief Summary')}
-                                className="user-select-none"
-                                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#e9ecef'}
-                                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                               >
-                                <div className="d-flex align-items-center gap-2">
                                   Summary
-                                  {sortColumn === 'Brief Summary' && (
-                                    <IconifyIcon
-                                      icon={sortDirection === 'asc' ? 'solar:alt-arrow-up-outline' : 'solar:alt-arrow-down-outline'}
-                                      width={14}
-                                      height={14}
-                                    />
-                                  )}
-                                </div>
                               </th>
                               <th
                                 style={{
                                   width: '120px',
-                                  cursor: 'pointer',
                                   borderBottom: 'none',
                                   padding: '1rem 0.75rem',
                                   fontWeight: '600',
                                   fontSize: '0.85rem',
-                                  letterSpacing: '0.5px',
-                                  transition: 'background-color 0.2s'
+                                  letterSpacing: '0.5px'
                                 }}
-                                onClick={() => handleSort('View_Status')}
-                                className="text-center user-select-none"
-                                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#e9ecef'}
-                                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                                className="text-center"
                               >
-                                <div className="d-flex align-items-center justify-content-center gap-2">
-                                  Status
-                                  {sortColumn === 'View_Status' && (
-                                    <IconifyIcon
-                                      icon={sortDirection === 'asc' ? 'solar:alt-arrow-up-outline' : 'solar:alt-arrow-down-outline'}
-                                      width={14}
-                                      height={14}
-                                    />
-                                  )}
-                                </div>
+                                Status
                               </th>
                               <th
                                 style={{
                                   width: '120px',
-                                  cursor: 'pointer',
                                   borderBottom: 'none',
                                   padding: '1rem 0.75rem',
                                   fontWeight: '600',
                                   fontSize: '0.85rem',
-                                  letterSpacing: '0.5px',
-                                  transition: 'background-color 0.2s'
+                                  letterSpacing: '0.5px'
                                 }}
-                                onClick={() => handleSort('Action_status')}
-                                className="text-center user-select-none"
-                                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#e9ecef'}
-                                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                                className="text-center"
                               >
-                                <div className="d-flex align-items-center justify-content-center gap-2">
                                   Action
-                                  {sortColumn === 'Action_status' && (
-                                    <IconifyIcon
-                                      icon={sortDirection === 'asc' ? 'solar:alt-arrow-up-outline' : 'solar:alt-arrow-down-outline'}
-                                      width={14}
-                                      height={14}
-                                    />
-                                  )}
-                                </div>
                               </th>
                               <th
                                 style={{
                                   width: '100px',
-                                  cursor: 'pointer',
                                   borderBottom: 'none',
                                   padding: '1rem 0.75rem',
                                   fontWeight: '600',
                                   fontSize: '0.85rem',
-                                  letterSpacing: '0.5px',
-                                  transition: 'background-color 0.2s'
+                                  letterSpacing: '0.5px'
                                 }}
-                                onClick={() => handleSort('Urgency')}
-                                className="text-center user-select-none"
-                                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#e9ecef'}
-                                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                                className="text-center"
                               >
-                                <div className="d-flex align-items-center justify-content-center gap-2">
                                   Urgency
-                                  {sortColumn === 'Urgency' && (
-                                    <IconifyIcon
-                                      icon={sortDirection === 'asc' ? 'solar:alt-arrow-up-outline' : 'solar:alt-arrow-down-outline'}
-                                      width={14}
-                                      height={14}
-                                    />
-                                  )}
-                                </div>
                               </th>
                               <th
                                 style={{
@@ -915,18 +767,7 @@ const CallRecordsPage = () => {
                                 </td>
                                 <td style={{ padding: '1rem 0.75rem', fontSize: '0.9rem' }}>
                                     {summary['Call timing'] || summary['Call Timing'] ? (
-                                    <span>
-                                      {(summary['Call timing'] || summary['Call Timing']).replace('Start (', '').replace(')', '')}
-                                    </span>
-                                  ) : (
-                                    <span className="text-muted fst-italic">N/A</span>
-                                  )}
-                                </td>
-                                <td style={{ padding: '1rem 0.75rem', fontSize: '0.9rem' }}>
-                                  {summary['End Call timing'] ? (
-                                    <span>
-                                      {summary['End Call timing'].replace('End (', '').replace(')', '')}
-                                    </span>
+                                    <span>{formatCallTime(summary['Call timing'] || summary['Call Timing'])}</span>
                                   ) : (
                                     <span className="text-muted fst-italic">N/A</span>
                                   )}
@@ -1138,23 +979,23 @@ const CallRecordsPage = () => {
                       {/* Pagination */}
                       <Row className="mt-4 pt-3 border-top">
                         <Col sm={6} className="mb-3 mb-sm-0">
-                          <div className="d-flex align-items-center gap-2">
-                            <span className="text-muted">Rows per page:</span>
-                            <Form.Select
-                              value={pageSize}
-                              onChange={(e) => handlePageSizeChange(Number(e.target.value))}
+                        <div className="d-flex align-items-center gap-2">
+                          <span className="text-muted">Rows per page:</span>
+                          <Form.Select
+                            value={pageSize}
+                            onChange={(e) => handlePageSizeChange(Number(e.target.value))}
                               style={{ width: 'auto', minWidth: '70px' }}
-                              size="sm"
-                            >
-                              <option value={10}>10</option>
-                              <option value={25}>25</option>
-                              <option value={50}>50</option>
-                              <option value={100}>100</option>
-                            </Form.Select>
+                            size="sm"
+                          >
+                            <option value={10}>10</option>
+                            <option value={25}>25</option>
+                            <option value={50}>50</option>
+                            <option value={100}>100</option>
+                          </Form.Select>
                             <span className="text-muted ms-2">
                               Showing {sortedAndPaginatedSummaries.length} of {typeof totalRecords === 'string' ? totalRecords.replace('+', '') : totalRecords.toLocaleString()} records
                             </span>
-                          </div>
+                        </div>
                         </Col>
                         <Col sm={6}>
                           <ul className="pagination pagination-rounded justify-content-sm-end m-0">
