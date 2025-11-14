@@ -268,15 +268,23 @@ const CallRecordsPage = () => {
     setIsLastPage(false)
   }
 
-  // Calculate left offset for sticky columns
+  // Define which columns should stick to the right (rightmost columns)
+  const rightStickyColumns = ['actions', 'urgency', 'action', 'status']
+
+  // Calculate left offset for sticky columns based on visual order (left to right)
   const getStickyLeft = (columnKey: string): number => {
     const columnOrder = ['rowNumber', 'callerName', 'email', 'phone', 'callTime', 'duration', 'summary', 'status', 'action', 'urgency', 'actions']
     const currentIndex = columnOrder.indexOf(columnKey)
     let left = 0
 
+    // Calculate left offset based on all visible sticky columns that come before this one
+    // Only count left-sticky columns (not right-sticky ones)
     for (let i = 0; i < currentIndex; i++) {
       const prevKey = columnOrder[i]
-      if (columnVisibility[prevKey as keyof typeof columnVisibility] && stickyColumns[prevKey as keyof typeof stickyColumns]) {
+      // Only count columns that are both visible AND sticky AND left-sticky
+      if (columnVisibility[prevKey as keyof typeof columnVisibility] &&
+          stickyColumns[prevKey as keyof typeof stickyColumns] &&
+          !rightStickyColumns.includes(prevKey)) {
         left += columnWidths[prevKey] || 0
       }
     }
@@ -284,19 +292,56 @@ const CallRecordsPage = () => {
     return left
   }
 
+  // Calculate right offset for sticky columns based on visual order (right to left)
+  const getStickyRight = (columnKey: string): number => {
+    const columnOrder = ['rowNumber', 'callerName', 'email', 'phone', 'callTime', 'duration', 'summary', 'status', 'action', 'urgency', 'actions']
+    const currentIndex = columnOrder.indexOf(columnKey)
+    let right = 0
+
+    // Calculate right offset based on all visible sticky columns that come after this one
+    // Only count right-sticky columns
+    for (let i = currentIndex + 1; i < columnOrder.length; i++) {
+      const nextKey = columnOrder[i]
+      // Only count columns that are both visible AND sticky AND right-sticky
+      if (columnVisibility[nextKey as keyof typeof columnVisibility] &&
+          stickyColumns[nextKey as keyof typeof stickyColumns] &&
+          rightStickyColumns.includes(nextKey)) {
+        right += columnWidths[nextKey] || 0
+      }
+    }
+
+    return right
+  }
+
   // Get sticky styles for a column
   const getStickyStyles = (columnKey: string, isHeader: boolean = false) => {
     const isSticky = stickyColumns[columnKey as keyof typeof stickyColumns]
     if (!isSticky) return {}
 
-    const left = getStickyLeft(columnKey)
-    return {
-      position: 'sticky' as const,
-      left: `${left}px`,
-      zIndex: isHeader ? 101 : 1,
-      backgroundColor: isHeader
-        ? 'var(--bs-table-bg, var(--bs-body-tertiary-bg, #f8f9fa))'
-        : 'var(--bs-body-bg, #ffffff)'
+    const isRightSticky = rightStickyColumns.includes(columnKey)
+
+    if (isRightSticky) {
+      // Stick to the right
+      const right = getStickyRight(columnKey)
+      return {
+        position: 'sticky' as const,
+        right: `${right}px`,
+        zIndex: isHeader ? 101 : 1,
+        backgroundColor: isHeader
+          ? 'var(--bs-table-bg, var(--bs-body-tertiary-bg, #f8f9fa))'
+          : 'var(--bs-body-bg, #ffffff)'
+      }
+    } else {
+      // Stick to the left
+      const left = getStickyLeft(columnKey)
+      return {
+        position: 'sticky' as const,
+        left: `${left}px`,
+        zIndex: isHeader ? 101 : 1,
+        backgroundColor: isHeader
+          ? 'var(--bs-table-bg, var(--bs-body-tertiary-bg, #f8f9fa))'
+          : 'var(--bs-body-bg, #ffffff)'
+      }
     }
   }
 
@@ -652,7 +697,7 @@ const CallRecordsPage = () => {
                               top: '100%',
                               right: 0,
                               zIndex: 1000,
-                              minWidth: '200px',
+                              minWidth: '320px',
                               marginTop: '4px'
                             }}
                           >
@@ -697,52 +742,69 @@ const CallRecordsPage = () => {
                             urgency: 'Urgency',
                             actions: 'Actions'
                           }).map(([key, label]) => (
-                            <div key={key} className="mb-3 pb-2 border-bottom">
-                              <div className="form-check mb-2">
-                                <input
-                                  className="form-check-input"
-                                  type="checkbox"
-                                  checked={columnVisibility[key as keyof typeof columnVisibility]}
-                                  onChange={(e) => {
-                                    const isChecked = e.target.checked
-                                    setColumnVisibility(prev => ({
-                                      ...prev,
-                                      [key]: isChecked
-                                    }))
-                                    // Reset sticky state when column is hidden
-                                    if (!isChecked) {
-                                      setStickyColumns(prev => ({
-                                        ...prev,
-                                        [key]: false
-                                      }))
-                                    }
-                                  }}
-                                  id={`col-${key}`}
-                                />
-                                <label className="form-check-label" htmlFor={`col-${key}`} style={{ fontSize: '0.9rem', cursor: 'pointer' }}>
-                                  {label}
-                                </label>
-                              </div>
-                              {columnVisibility[key as keyof typeof columnVisibility] && (
-                                <div className="form-check">
+                            <div key={key} className="mb-2 pb-2 border-bottom">
+                              <div className="d-flex align-items-center justify-content-between gap-3">
+                                <div className="form-check flex-grow-1">
                                   <input
                                     className="form-check-input"
                                     type="checkbox"
-                                    checked={stickyColumns[key as keyof typeof stickyColumns]}
+                                    checked={columnVisibility[key as keyof typeof columnVisibility]}
                                     onChange={(e) => {
-                                      setStickyColumns(prev => ({
+                                      const isChecked = e.target.checked
+                                      setColumnVisibility(prev => ({
                                         ...prev,
-                                        [key]: e.target.checked
+                                        [key]: isChecked
                                       }))
+                                      // Reset sticky state when column is hidden
+                                      if (!isChecked) {
+                                        setStickyColumns(prev => ({
+                                          ...prev,
+                                          [key]: false
+                                        }))
+                                      }
                                     }}
-                                    id={`sticky-${key}`}
+                                    id={`col-${key}`}
                                   />
-                                  <label className="form-check-label text-muted" htmlFor={`sticky-${key}`} style={{ fontSize: '0.85rem', cursor: 'pointer' }}>
-                                    <IconifyIcon icon="solar:pin-outline" width={14} height={14} className="me-1" />
-                                    Sticky
+                                  <label className="form-check-label" htmlFor={`col-${key}`} style={{ fontSize: '0.9rem', cursor: 'pointer' }}>
+                                    {label}
                                   </label>
                                 </div>
-                              )}
+                                {columnVisibility[key as keyof typeof columnVisibility] && (
+                                  <div className="form-check">
+                                    <input
+                                      className="form-check-input"
+                                      type="checkbox"
+                                      checked={stickyColumns[key as keyof typeof stickyColumns]}
+                                      onChange={(e) => {
+                                        const currentStickyCount = Object.values(stickyColumns).filter(v => v).length
+                                        const isCurrentlySticky = stickyColumns[key as keyof typeof stickyColumns]
+
+                                        // Allow unchecking, but limit checking to max 4
+                                        if (e.target.checked && !isCurrentlySticky && currentStickyCount >= 4) {
+                                          // Don't allow more than 4 sticky columns
+                                          return
+                                        }
+
+                                        setStickyColumns(prev => ({
+                                          ...prev,
+                                          [key]: e.target.checked
+                                        }))
+                                      }}
+                                      disabled={!stickyColumns[key as keyof typeof stickyColumns] && Object.values(stickyColumns).filter(v => v).length >= 4}
+                                      id={`sticky-${key}`}
+                                    />
+                                    <label
+                                      className={`form-check-label text-muted ${!stickyColumns[key as keyof typeof stickyColumns] && Object.values(stickyColumns).filter(v => v).length >= 4 ? 'text-muted opacity-50' : ''}`}
+                                      htmlFor={`sticky-${key}`}
+                                      style={{ fontSize: '0.85rem', cursor: !stickyColumns[key as keyof typeof stickyColumns] && Object.values(stickyColumns).filter(v => v).length >= 4 ? 'not-allowed' : 'pointer' }}
+                                      title={!stickyColumns[key as keyof typeof stickyColumns] && Object.values(stickyColumns).filter(v => v).length >= 4 ? 'Maximum 4 sticky columns allowed' : 'Make column sticky'}
+                                    >
+                                      <IconifyIcon icon="solar:pin-outline" width={14} height={14} className="me-1" />
+                                      Sticky
+                                    </label>
+                                  </div>
+                                )}
+                              </div>
                             </div>
                           ))}
                         </div>
@@ -1097,14 +1159,14 @@ const CallRecordsPage = () => {
                                     <span className="text-muted">
                                       {(currentPage - 1) * pageSize + index + 1}
                                     </span>
-                                  </td>
+                                </td>
                                 )}
                                 {columnVisibility.callerName && (
                                   <td style={{ padding: '1rem 0.75rem', ...getStickyStyles('callerName', false) }}>
                                     <span className="fw-medium">
                                       {summary['Caller Name'] || <span className="text-muted fst-italic">N/A</span>}
                                     </span>
-                                  </td>
+                                </td>
                                 )}
                                 {columnVisibility.email && (
                                   <td style={{ padding: '1rem 0.75rem', ...getStickyStyles('email', false) }}>
@@ -1125,7 +1187,7 @@ const CallRecordsPage = () => {
                                     ) : (
                                       <span className="text-muted fst-italic">N/A</span>
                                     )}
-                                  </td>
+                                </td>
                                 )}
                                 {columnVisibility.duration && (
                                   <td className="text-center" style={{ padding: '1rem 0.75rem', ...getStickyStyles('duration', false) }}>
