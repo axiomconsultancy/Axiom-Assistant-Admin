@@ -836,15 +836,20 @@ const CallRecordsPage = () => {
               )}
 
               {/* Loading State */}
+              <style>{`
+                .call-records-loading {
+                  background: linear-gradient(135deg, var(--bs-body-tertiary-bg, #f8f9ff) 0%, var(--bs-body-bg, #e8eaf6) 100%);
+                  border-radius: 6px;
+                  padding: 3rem;
+                  border: 1px solid var(--bs-border-color, #e5e7eb);
+                }
+                [data-bs-theme="dark"] .call-records-loading {
+                  background: linear-gradient(135deg, #1f2933 0%, #0f172a 100%);
+                  border: 1px solid var(--bs-border-color, #2d3748);
+                }
+              `}</style>
               {loading && (
-                    <div
-                      className="text-center py-5"
-                      style={{
-                        background: 'linear-gradient(135deg, #f8f9ff 0%, #e8eaf6 100%)',
-                        borderRadius: '6px',
-                        padding: '3rem'
-                      }}
-                    >
+                <div className="text-center py-5 call-records-loading">
                   <div style={{ position: 'relative', display: 'inline-block' }}>
                     <Spinner
                       animation="border"
