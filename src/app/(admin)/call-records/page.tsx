@@ -1,13 +1,15 @@
 'use client'
 
 import React, { useEffect, useState, useCallback, useMemo } from 'react'
-import { Card, CardBody, CardHeader, CardTitle, Row, Col, Form, InputGroup, Button, Badge, Spinner, Modal, ModalHeader, ModalBody, ModalFooter, ModalTitle, Table } from 'react-bootstrap'
+import { Row, Col, Button, Badge, Modal, ModalHeader, ModalBody, ModalFooter, ModalTitle, Spinner } from 'react-bootstrap'
 import Link from 'next/link'
 import IconifyIcon from '@/components/wrapper/IconifyIcon'
 import Footer from '@/components/layout/Footer'
 import { useAuth } from '@/context/useAuthContext'
 import { summaryApi } from '@/lib/summary-api'
 import type { SummaryOut, SummaryFilters, SummarySort, Timezone } from '@/types/summary'
+import { DataTable } from '@/components/table'
+import type { DataTableColumn, DataTableFilterControl } from '@/components/table'
 
 const CallRecordsPage = () => {
   const { token, isAuthenticated } = useAuth()
@@ -15,90 +17,37 @@ const CallRecordsPage = () => {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  // Filter and search state
   const [searchQuery, setSearchQuery] = useState('')
   const [filter, setFilter] = useState<SummaryFilters>('all')
   const [sort, setSort] = useState<SummarySort>('newest')
   const [timezone, setTimezone] = useState<Timezone>('UTC')
 
-  // Column sorting state
   const [sortColumn, setSortColumn] = useState<string | null>(null)
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc')
 
-  // Pagination state
   const [currentPage, setCurrentPage] = useState(1)
   const [pageSize, setPageSize] = useState(10)
   const [totalCount, setTotalCount] = useState(0)
-  const [hasMore, setHasMore] = useState(false) // Track if there's more data available
-  const [isLastPage, setIsLastPage] = useState(false) // Track if we're on the last page
-  const [allSummaries, setAllSummaries] = useState<SummaryOut[]>([]) // Store all fetched summaries for client-side sorting
+  const [hasMore, setHasMore] = useState(false)
+  const [isLastPage, setIsLastPage] = useState(false)
+  const [allSummaries, setAllSummaries] = useState<SummaryOut[]>([])
 
-  // Detail modal state
   const [selectedSummary, setSelectedSummary] = useState<SummaryOut | null>(null)
   const [showDetailModal, setShowDetailModal] = useState(false)
 
-  // Debounced search
   const [debouncedSearch, setDebouncedSearch] = useState('')
-
-  // Column visibility state
-  const [columnVisibility, setColumnVisibility] = useState({
-    rowNumber: true,
-    callerName: true,
-    email: true,
-    phone: true,
-    callTime: true,
-    duration: true,
-    summary: true,
-    status: true,
-    action: true,
-    urgency: true,
-    actions: true
-  })
-
-  const [showColumnMenu, setShowColumnMenu] = useState(false)
   const [showFilters, setShowFilters] = useState(true)
-
-  // Column sticky state
-  const [stickyColumns, setStickyColumns] = useState({
-    rowNumber: false,
-    callerName: false,
-    email: false,
-    phone: false,
-    callTime: false,
-    duration: false,
-    summary: false,
-    status: false,
-    action: false,
-    urgency: false,
-    actions: false
-  })
-
-  // Column widths for calculating sticky positions
-  const columnWidths: Record<string, number> = {
-    rowNumber: 60,
-    callerName: 150,
-    email: 200,
-    phone: 130,
-    callTime: 200,
-    duration: 120,
-    summary: 250,
-    status: 120,
-    action: 120,
-    urgency: 100,
-    actions: 150
-  }
 
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedSearch(searchQuery)
-      setCurrentPage(1) // Reset to first page on search
-      setIsLastPage(false) // Reset last page status
+      setCurrentPage(1)
+      setIsLastPage(false)
     }, 500)
 
     return () => clearTimeout(timer)
   }, [searchQuery])
 
-  // Fetch summaries - fetch all when sorting is active, otherwise use pagination
   const fetchSummaries = useCallback(async () => {
     if (!token || !isAuthenticated) {
       setLoading(false)
@@ -109,8 +58,6 @@ const CallRecordsPage = () => {
     setError(null)
 
     try {
-      // If column sorting is active, fetch a large batch (or all) for client-side sorting
-      // Otherwise, use server-side pagination
       const shouldFetchAll = sortColumn !== null
       const fetchLimit = shouldFetchAll ? 1000 : pageSize
       const fetchSkip = shouldFetchAll ? 0 : (currentPage - 1) * pageSize
@@ -121,7 +68,7 @@ const CallRecordsPage = () => {
         search: debouncedSearch || undefined,
         filter: filter !== 'all' ? filter : undefined,
         sort,
-        tz: timezone,
+        tz: timezone
       })
 
       if (response.error) {
@@ -132,23 +79,16 @@ const CallRecordsPage = () => {
         setIsLastPage(true)
         setTotalCount(0)
       } else if (response.data) {
-        // Handle new response format with summaries and total
         const summariesData = response.data.summaries
         const totalFromBackend = response.data.total
 
         if (shouldFetchAll) {
-          // Store all data for client-side sorting and pagination
           setAllSummaries(summariesData)
           setTotalCount(totalFromBackend)
-          setHasMore(false) // We fetched all available data
-          setIsLastPage(true) // We have all data, so we're effectively on the last page
+          setHasMore(false)
+          setIsLastPage(true)
         } else {
-          // Use server-side pagination
-
-          // If we got 0 items and we're not on page 1, we've gone too far
-          // This means the previous page was actually the last page
           if (summariesData.length === 0 && currentPage > 1) {
-            // Fetch the previous page's data immediately
             const previousPage = currentPage - 1
             try {
               const prevResponse = await summaryApi.getUserSummaries(token, {
@@ -157,28 +97,18 @@ const CallRecordsPage = () => {
                 search: debouncedSearch || undefined,
                 filter: filter !== 'all' ? filter : undefined,
                 sort,
-                tz: timezone,
+                tz: timezone
               })
 
               if (prevResponse.data) {
-                const prevSummaries = prevResponse.data.summaries
-                const prevTotal = prevResponse.data.total
-                setSummaries(prevSummaries)
+                setSummaries(prevResponse.data.summaries)
                 setAllSummaries([])
                 setCurrentPage(previousPage)
                 setIsLastPage(true)
                 setHasMore(false)
-                setTotalCount(prevTotal)
-          } else {
-                // Fallback: just set state and let effect handle it
-                setCurrentPage(previousPage)
-                setIsLastPage(true)
-                setHasMore(false)
-                setSummaries([])
-                setAllSummaries([])
+                setTotalCount(prevResponse.data.total)
               }
             } catch (prevErr) {
-              // Fallback: just set state and let effect handle it
               setCurrentPage(previousPage)
               setIsLastPage(true)
               setHasMore(false)
@@ -192,12 +122,10 @@ const CallRecordsPage = () => {
           setSummaries(summariesData)
           setAllSummaries([])
 
-          // Set the exact total count from backend
           if (totalFromBackend !== undefined) {
             setTotalCount(totalFromBackend)
           }
 
-          // Determine if we're on the last page
           const currentRecordCount = (currentPage - 1) * pageSize + summariesData.length
           const isLast = totalFromBackend !== undefined && currentRecordCount >= totalFromBackend
           const hasMoreData = totalFromBackend !== undefined && currentRecordCount < totalFromBackend
@@ -222,44 +150,32 @@ const CallRecordsPage = () => {
     fetchSummaries()
   }, [fetchSummaries])
 
-  const handleViewDetails = (summary: SummaryOut) => {
+  const handleViewDetails = useCallback((summary: SummaryOut) => {
     setSelectedSummary(summary)
     setShowDetailModal(true)
-  }
+  }, [])
 
-  // Format call timing to remove day name and prefix
-  const formatCallTime = (timeString: string | null | undefined): string => {
+  const formatCallTime = useCallback((timeString: string | null | undefined): string => {
     if (!timeString) return 'N/A'
-    // Remove "Start (", ")", and the day name (e.g., "Wednesday, ")
     let formatted = timeString.replace(/Start \([^)]*\):\s*/i, '').replace(/End \([^)]*\):\s*/i, '')
-    // Remove day name pattern (e.g., "Wednesday, ")
     formatted = formatted.replace(/^[A-Za-z]+,\s*/, '')
     return formatted
-  }
+  }, [])
 
-  // Handle column sorting
-  const handleSort = (column: string) => {
-    // If clicking the same column, toggle direction
+  const handleSort = useCallback(
+    (column: string) => {
     if (sortColumn === column) {
-      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc')
+        setSortDirection((prev) => (prev === 'asc' ? 'desc' : 'asc'))
     } else {
-      // New column, set to ascending
       setSortColumn(column)
       setSortDirection('asc')
     }
-    setCurrentPage(1) // Reset to first page when sorting changes
-    setIsLastPage(false) // Reset last page status
-  }
-
-  // Clear sorting (when needed)
-  const clearSort = () => {
-    setSortColumn(null)
-    setSortDirection('asc')
     setCurrentPage(1)
     setIsLastPage(false)
-  }
+    },
+    [sortColumn]
+  )
 
-  // Clear all filters (not search - search has its own clear button)
   const clearFilters = () => {
     setFilter('all')
     setSort('newest')
@@ -268,119 +184,34 @@ const CallRecordsPage = () => {
     setIsLastPage(false)
   }
 
-  // Define which columns should stick to the right (rightmost columns)
-  const rightStickyColumns = ['actions', 'urgency', 'action', 'status']
-
-  // Calculate left offset for sticky columns based on visual order (left to right)
-  const getStickyLeft = (columnKey: string): number => {
-    const columnOrder = ['rowNumber', 'callerName', 'email', 'phone', 'callTime', 'duration', 'summary', 'status', 'action', 'urgency', 'actions']
-    const currentIndex = columnOrder.indexOf(columnKey)
-    let left = 0
-
-    // Calculate left offset based on all visible sticky columns that come before this one
-    // Only count left-sticky columns (not right-sticky ones)
-    for (let i = 0; i < currentIndex; i++) {
-      const prevKey = columnOrder[i]
-      // Only count columns that are both visible AND sticky AND left-sticky
-      if (columnVisibility[prevKey as keyof typeof columnVisibility] &&
-          stickyColumns[prevKey as keyof typeof stickyColumns] &&
-          !rightStickyColumns.includes(prevKey)) {
-        left += columnWidths[prevKey] || 0
-      }
-    }
-
-    return left
-  }
-
-  // Calculate right offset for sticky columns based on visual order (right to left)
-  const getStickyRight = (columnKey: string): number => {
-    const columnOrder = ['rowNumber', 'callerName', 'email', 'phone', 'callTime', 'duration', 'summary', 'status', 'action', 'urgency', 'actions']
-    const currentIndex = columnOrder.indexOf(columnKey)
-    let right = 0
-
-    // Calculate right offset based on all visible sticky columns that come after this one
-    // Only count right-sticky columns
-    for (let i = currentIndex + 1; i < columnOrder.length; i++) {
-      const nextKey = columnOrder[i]
-      // Only count columns that are both visible AND sticky AND right-sticky
-      if (columnVisibility[nextKey as keyof typeof columnVisibility] &&
-          stickyColumns[nextKey as keyof typeof stickyColumns] &&
-          rightStickyColumns.includes(nextKey)) {
-        right += columnWidths[nextKey] || 0
-      }
-    }
-
-    return right
-  }
-
-  // Get sticky styles for a column
-  const getStickyStyles = (columnKey: string, isHeader: boolean = false) => {
-    const isSticky = stickyColumns[columnKey as keyof typeof stickyColumns]
-    if (!isSticky) return {}
-
-    const isRightSticky = rightStickyColumns.includes(columnKey)
-
-    if (isRightSticky) {
-      // Stick to the right
-      const right = getStickyRight(columnKey)
-      return {
-        position: 'sticky' as const,
-        right: `${right}px`,
-        zIndex: isHeader ? 102 : 100,
-        boxShadow: isHeader
-          ? 'none'
-          : '-2px 0 4px rgba(0,0,0,0.1)',
-        isolation: 'isolate' as const
-      }
-    } else {
-      // Stick to the left
-      const left = getStickyLeft(columnKey)
-      return {
-        position: 'sticky' as const,
-        left: `${left}px`,
-        zIndex: isHeader ? 102 : 100,
-        boxShadow: isHeader
-          ? 'none'
-          : '2px 0 4px rgba(0,0,0,0.1)',
-        isolation: 'isolate' as const
-      }
-    }
-  }
-
-  // Get sticky class name
-  const getStickyClassName = (columnKey: string, isHeader: boolean = false) => {
-    const isSticky = stickyColumns[columnKey as keyof typeof stickyColumns]
-    if (!isSticky) return ''
-    return isHeader ? 'sticky-column-header' : 'sticky-column-cell'
-  }
-
-  // Sort and paginate summaries
   const sortedAndPaginatedSummaries = useMemo(() => {
-    // Determine which data source to use
     const dataToSort = sortColumn ? allSummaries : summaries
 
-    // If no column sorting, return paginated data as-is
     if (!sortColumn) {
       return dataToSort
     }
 
-    // Sort the data
     const sorted = [...dataToSort].sort((a, b) => {
       let aValue: any = a[sortColumn as keyof SummaryOut]
       let bValue: any = b[sortColumn as keyof SummaryOut]
 
-      // Handle null/undefined values
       if (aValue == null) aValue = ''
       if (bValue == null) bValue = ''
 
-      // Special handling for boolean values
       if (typeof aValue === 'boolean' && typeof bValue === 'boolean') {
         return sortDirection === 'asc'
-          ? (aValue === bValue ? 0 : aValue ? 1 : -1)
-          : (aValue === bValue ? 0 : aValue ? -1 : 1)
+          ? aValue === bValue
+            ? 0
+            : aValue
+              ? 1
+              : -1
+          : aValue === bValue
+            ? 0
+            : aValue
+              ? -1
+              : 1
       }
 
-      // Special handling for Duration field (e.g., "2.5 minutes")
       if (sortColumn === 'Duration') {
         const extractMinutes = (value: any): number => {
           if (!value) return 0
@@ -393,22 +224,16 @@ const CallRecordsPage = () => {
         return sortDirection === 'asc' ? aMinutes - bMinutes : bMinutes - aMinutes
       }
 
-      // Convert to string for comparison
       const aStr = String(aValue).toLowerCase()
       const bStr = String(bValue).toLowerCase()
 
-      // Compare
       let comparison = 0
-      if (aStr < bStr) {
-        comparison = -1
-      } else if (aStr > bStr) {
-        comparison = 1
-      }
+      if (aStr < bStr) comparison = -1
+      else if (aStr > bStr) comparison = 1
 
       return sortDirection === 'asc' ? comparison : -comparison
     })
 
-    // Paginate the sorted data
     const startIndex = (currentPage - 1) * pageSize
     const endIndex = startIndex + pageSize
     return sorted.slice(startIndex, endIndex)
@@ -416,61 +241,282 @@ const CallRecordsPage = () => {
 
   const handlePageChange = (newPage: number) => {
     setCurrentPage(newPage)
+    if (!sortColumn) {
     window.scrollTo({ top: 0, behavior: 'smooth' })
+    }
   }
 
   const handlePageSizeChange = (newSize: number) => {
     setPageSize(newSize)
     setCurrentPage(1)
-    setIsLastPage(false) // Reset last page status when page size changes
+    setIsLastPage(false)
   }
 
-  const handleFirstPage = () => {
-    if (currentPage > 1) {
-      handlePageChange(1)
-    }
-  }
-
-  const handleLastPage = () => {
-    if (sortColumn) {
-      // For client-side pagination, we know the exact last page
-      const lastPage = totalPages > 0 ? totalPages : 1
-      if (currentPage < lastPage) {
-        handlePageChange(lastPage)
-      }
-    } else {
-      // For server-side pagination, we can't jump to last page directly
-      // This button should be disabled for server-side pagination
-      // But if somehow called, just go to next page if available
-      if (hasMore && !isLastPage) {
-        handlePageChange(currentPage + 1)
-      }
-    }
-  }
-
-  // Calculate pagination info based on whether we're using client-side or server-side pagination
   const effectiveTotalCount = sortColumn ? allSummaries.length : totalCount
-  const totalPages = sortColumn
-    ? Math.ceil(effectiveTotalCount / pageSize)
-    : (isLastPage ? currentPage : currentPage + 1) // For server-side, use current page if last, otherwise estimate
+  const totalRecordsDisplay = sortColumn ? effectiveTotalCount : totalCount
   const startRecord = sortedAndPaginatedSummaries.length > 0 ? (currentPage - 1) * pageSize + 1 : 0
   const endRecord = (currentPage - 1) * pageSize + sortedAndPaginatedSummaries.length
-  const totalRecords = sortColumn
-    ? effectiveTotalCount
-    : (isLastPage ? totalCount : `${totalCount}+`) // Show "+" if there's more data
+  const totalPages = sortColumn ? Math.ceil(effectiveTotalCount / pageSize) : (isLastPage ? currentPage : currentPage + 1)
+
+  const dataTableColumns: DataTableColumn<SummaryOut>[] = [
+    {
+      key: 'rowNumber',
+      header: '#',
+      width: 60,
+      align: 'center',
+      sticky: 'left',
+      render: (_, { rowIndex }) => (
+        <span className="text-muted">{(currentPage - 1) * pageSize + rowIndex + 1}</span>
+      )
+    },
+    {
+      key: 'callerName',
+      header: 'Caller Name',
+      minWidth: 150,
+      render: (row) => (
+        <span className="fw-medium">{row['Caller Name'] || <span className="text-muted fst-italic">N/A</span>}</span>
+      )
+    },
+    {
+      key: 'email',
+      header: 'Email',
+      minWidth: 200,
+      render: (row) => (
+        <div className="text-truncate" style={{ maxWidth: '200px' }} title={row['Caller Email'] || ''}>
+          {row['Caller Email'] || <span className="text-muted fst-italic">N/A</span>}
+              </div>
+      )
+    },
+    {
+      key: 'phone',
+      header: 'Phone',
+      minWidth: 130,
+      render: (row) => row['Caller Number'] || <span className="text-muted fst-italic">N/A</span>
+    },
+    {
+      key: 'callTime',
+      header: 'Call Time',
+      minWidth: 200,
+      render: (row) =>
+        row['Call timing'] || row['Call Timing'] ? (
+          <span>{formatCallTime(row['Call timing'] || row['Call Timing'])}</span>
+        ) : (
+          <span className="text-muted fst-italic">N/A</span>
+        )
+    },
+    {
+      key: 'duration',
+      header: 'Duration',
+      align: 'center',
+      minWidth: 120,
+      render: (row) =>
+        row['Duration'] ? (
+          <Badge bg="info" className="px-2 py-1">
+            {row['Duration']}
+          </Badge>
+        ) : (
+          <span className="text-muted fst-italic">N/A</span>
+        )
+    },
+    {
+      key: 'summary',
+      header: 'Summary',
+      minWidth: 250,
+      render: (row) => (
+        <div
+          className="text-truncate"
+          style={{ maxWidth: '250px', fontSize: '0.9rem', color: '#4b5563', lineHeight: '1.5' }}
+          title={row['Brief Summary'] || ''}
+        >
+          {row['Brief Summary']
+            ? row['Brief Summary'].length > 80
+              ? `${row['Brief Summary'].substring(0, 80)}...`
+              : row['Brief Summary']
+            : <span className="text-muted fst-italic">No summary available</span>}
+          </div>
+      )
+    },
+    {
+      key: 'status',
+      header: 'Status',
+      align: 'center',
+      minWidth: 120,
+      sticky: 'right',
+      render: (row) =>
+        row['View_Status'] ? (
+          <Badge bg="success" className="px-2 py-1">
+            Read
+          </Badge>
+        ) : (
+          <Badge bg="warning" text="dark" className="px-2 py-1">
+            Unread
+          </Badge>
+        )
+    },
+    {
+      key: 'action',
+      header: 'Action',
+      align: 'center',
+      minWidth: 120,
+      sticky: 'right',
+      render: (row) =>
+        row['Action_flag'] ? (
+          <Badge bg={row['Action_status'] === 'Done' ? 'success' : 'danger'} className="px-2 py-1">
+            {row['Action_status'] || 'Pending'}
+          </Badge>
+        ) : (
+          <Badge bg="secondary" className="px-2 py-1">
+            None
+          </Badge>
+        )
+    },
+    {
+      key: 'urgency',
+      header: 'Urgency',
+      align: 'center',
+      minWidth: 100,
+      sticky: 'right',
+      render: (row) =>
+        row['Urgency'] ? (
+          <Badge bg="danger" className="px-2 py-1">
+            Urgent
+          </Badge>
+        ) : (
+          <Badge bg="secondary" className="px-2 py-1">
+            Normal
+          </Badge>
+        )
+    },
+    {
+      key: 'actions',
+      header: 'Actions',
+      align: 'center',
+      minWidth: 150,
+      sticky: 'right',
+      render: (row) => (
+        <div className="d-flex gap-2 justify-content-center">
+          <Button variant="primary" size="sm" onClick={() => handleViewDetails(row)} title="View Details">
+            <IconifyIcon icon="solar:eye-outline" width={16} height={16} />
+          </Button>
+          {row['Recording Link'] && (
+                    <Button
+              variant="success"
+              size="sm"
+              as="a"
+              href={row['Recording Link']}
+              target="_blank"
+              rel="noopener noreferrer"
+              title="Play Recording"
+            >
+              <IconifyIcon icon="solar:play-outline" width={16} height={16} />
+                    </Button>
+          )}
+                  </div>
+      )
+    }
+  ]
+
+  const toolbarFilters: DataTableFilterControl[] = [
+    {
+      id: 'filter',
+      label: 'Record Status',
+      type: 'select',
+      value: filter === 'all' ? '' : filter,
+      onChange: (value: string) => {
+        const nextValue = (value || 'all') as SummaryFilters
+        setFilter(nextValue)
+                      setCurrentPage(1)
+                        setIsLastPage(false)
+      },
+      onClear: filter !== 'all' ? () => {
+                          setFilter('all')
+                          setCurrentPage(1)
+                          setIsLastPage(false)
+      } : undefined,
+      options: [
+        { label: 'All Records', value: '' },
+        { label: 'Read', value: 'read' },
+        { label: 'Unread', value: 'unread' },
+        { label: 'Urgent', value: 'urgent' }
+      ]
+    },
+    {
+      id: 'sort',
+      label: 'Sort',
+      type: 'select',
+      value: sort === 'newest' ? '' : sort,
+      onChange: (value: string) => {
+        const nextSort = (value || 'newest') as SummarySort
+        setSort(nextSort)
+                      setCurrentPage(1)
+                        setIsLastPage(false)
+      },
+      onClear: sort !== 'newest' ? () => {
+                          setSort('newest')
+                          setCurrentPage(1)
+                          setIsLastPage(false)
+      } : undefined,
+      options: [
+        { label: 'Newest First', value: '' },
+        { label: 'Oldest First', value: 'oldest' }
+      ]
+    },
+    {
+      id: 'timezone',
+      label: 'Timezone',
+      type: 'select',
+      value: timezone === 'UTC' ? '' : timezone,
+      onChange: (value: string) => {
+        const nextTz = (value || 'UTC') as Timezone
+        setTimezone(nextTz)
+                      setCurrentPage(1)
+                        setIsLastPage(false)
+      },
+      onClear: timezone !== 'UTC' ? () => {
+                          setTimezone('UTC')
+                          setCurrentPage(1)
+                          setIsLastPage(false)
+      } : undefined,
+      options: [
+        { label: 'UTC', value: '' },
+        { label: 'EST', value: 'EST' },
+        { label: 'CST', value: 'CST' },
+        { label: 'MST', value: 'MST' },
+        { label: 'PST', value: 'PST' }
+      ]
+    }
+  ]
+
+  const emptyStateIcon = (
+                      <div
+                            style={{
+                          width: '120px',
+                          height: '120px',
+                          borderRadius: '50%',
+                          background: '#4f46e5',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          marginBottom: '1.5rem',
+                          boxShadow: '0 8px 16px rgba(79,70,229,0.2)'
+                        }}
+                      >
+                        <IconifyIcon icon="solar:call-chat-bold" width={56} height={56} style={{ color: 'white' }} />
+                          </div>
+  )
+
+  const filtersDirty = filter !== 'all' || sort !== 'newest' || timezone !== 'UTC'
 
   if (!isAuthenticated) {
     return (
       <Row>
         <Col xs={12}>
-          <Card>
-            <CardBody className="text-center py-5">
+          <div className="text-center py-5">
               <p>Please sign in to view call records.</p>
               <Link href="/auth/sign-in">
                 <Button variant="primary">Sign In</Button>
               </Link>
-            </CardBody>
-          </Card>
+                    </div>
         </Col>
       </Row>
     )
@@ -478,38 +524,6 @@ const CallRecordsPage = () => {
 
   return (
     <>
-      <style>{`
-        /* Custom scrollbar styling - horizontal scrollbar visible */
-        .table-responsive::-webkit-scrollbar {
-          height: 8px;
-        }
-
-        .table-responsive::-webkit-scrollbar-track {
-          background: #f1f1f1;
-          border-radius: 4px;
-        }
-
-        .table-responsive::-webkit-scrollbar-thumb {
-          background: #6c757d;
-          border-radius: 4px;
-        }
-
-        .table-responsive::-webkit-scrollbar-thumb:hover {
-          background: #5a6268;
-        }
-
-        /* Hide vertical scrollbar but keep scrolling functionality */
-        .table-responsive {
-          scrollbar-width: thin;
-          scrollbar-color: #6c757d #f1f1f1;
-          -ms-overflow-style: -ms-autohiding-scrollbar;
-        }
-
-        /* Hide vertical scrollbar in webkit browsers */
-        .table-responsive::-webkit-scrollbar:vertical {
-          width: 0px;
-        }
-      `}</style>
       <Row>
         <Col xs={12}>
           <div className="page-title-box">
@@ -520,322 +534,16 @@ const CallRecordsPage = () => {
               </li>
               <div className="mx-1" style={{ height: 24, paddingRight: '8px' }}>
                 <IconifyIcon icon="bx:chevron-right" height={16} width={16} />
-              </div>
+                                  </div>
               <li className="breadcrumb-item active">Call Records</li>
             </ol>
-          </div>
-        </Col>
-      </Row>
-
-      <Row>
-        <Col xs={12}>
-          <Card>
-            <CardHeader>
-              <Row className="align-items-center">
-                <Col md={4}>
-                  <CardTitle as="h5" className="mb-0">Call Records</CardTitle>
-                </Col>
-                <Col md={4} className="ms-auto">
-                  <div className="d-flex gap-2 align-items-center">
-                    <Button
-                      variant={showFilters ? "primary" : "outline-secondary"}
-                      className="shadow-sm"
-                      onClick={() => setShowFilters(!showFilters)}
-                      title={showFilters ? "Hide filters" : "Show filters"}
-                      style={{ fontSize: '0.95rem', minWidth: '40px' }}
-                    >
-                      <IconifyIcon icon="solar:filter-outline" width={20} height={20} />
-                    </Button>
-                    <InputGroup className="shadow-sm flex-grow-1">
-                      <InputGroup.Text className="bg-body-secondary border-end-0">
-                      <IconifyIcon icon="solar:magnifer-outline" width={20} height={20} />
-                    </InputGroup.Text>
-                    <Form.Control
-                      type="text"
-                      placeholder="Search by name, email, or phone..."
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                        className="border-start-0 ps-0"
-                        style={{ fontSize: '0.95rem' }}
-                      />
-                      {searchQuery && (
-                        <InputGroup.Text
-                          className="bg-body-secondary border-start-0"
-                          onClick={() => setSearchQuery('')}
-                          style={{ cursor: 'pointer' }}
-                          title="Clear search"
-                        >
-                          <IconifyIcon icon="solar:close-circle-bold" width={18} height={18} className="text-muted" />
-                        </InputGroup.Text>
-                      )}
-                  </InputGroup>
                   </div>
                 </Col>
               </Row>
-            </CardHeader>
-            <CardBody>
-              {/* Filters */}
-              {showFilters && (
-              <Row className="mb-4 g-3 align-items-end">
-                <Col md={3}>
-                  <InputGroup className="shadow-sm">
-                  <Form.Select
-                    value={filter}
-                    onChange={(e) => {
-                      setFilter(e.target.value as SummaryFilters)
-                      setCurrentPage(1)
-                        setIsLastPage(false)
-                    }}
-                      className="border-end-0"
-                      style={{ fontSize: '0.95rem' }}
-                  >
-                    <option value="all">All Records</option>
-                    <option value="read">Read</option>
-                    <option value="unread">Unread</option>
-                    <option value="urgent">Urgent</option>
-                  </Form.Select>
-                    {filter !== 'all' && (
-                      <InputGroup.Text
-                        className="bg-body-secondary border-start-0"
-                        onClick={() => {
-                          setFilter('all')
-                          setCurrentPage(1)
-                          setIsLastPage(false)
-                        }}
-                        style={{ cursor: 'pointer' }}
-                        title="Clear filter"
-                      >
-                        <IconifyIcon icon="solar:close-circle-bold" width={18} height={18} className="text-muted" />
-                      </InputGroup.Text>
-                    )}
-                  </InputGroup>
-                </Col>
-                <Col md={3}>
-                  <InputGroup className="shadow-sm">
-                  <Form.Select
-                    value={sort}
-                    onChange={(e) => {
-                      setSort(e.target.value as SummarySort)
-                      setCurrentPage(1)
-                        setIsLastPage(false)
-                    }}
-                      className="border-end-0"
-                      style={{ fontSize: '0.95rem' }}
-                  >
-                    <option value="newest">Newest First</option>
-                    <option value="oldest">Oldest First</option>
-                  </Form.Select>
-                    {sort !== 'newest' && (
-                      <InputGroup.Text
-                        className="bg-body-secondary border-start-0"
-                        onClick={() => {
-                          setSort('newest')
-                          setCurrentPage(1)
-                          setIsLastPage(false)
-                        }}
-                        style={{ cursor: 'pointer' }}
-                        title="Clear sort"
-                      >
-                        <IconifyIcon icon="solar:close-circle-bold" width={18} height={18} className="text-muted" />
-                      </InputGroup.Text>
-                    )}
-                  </InputGroup>
-                </Col>
-                <Col md={3}>
-                  <InputGroup className="shadow-sm">
-                  <Form.Select
-                    value={timezone}
-                    onChange={(e) => {
-                      setTimezone(e.target.value as Timezone)
-                      setCurrentPage(1)
-                        setIsLastPage(false)
-                    }}
-                      className="border-end-0"
-                      style={{ fontSize: '0.95rem' }}
-                  >
-                    <option value="UTC">UTC</option>
-                    <option value="EST">EST</option>
-                    <option value="CST">CST</option>
-                    <option value="MST">MST</option>
-                    <option value="PST">PST</option>
-                  </Form.Select>
-                    {timezone !== 'UTC' && (
-                      <InputGroup.Text
-                        className="bg-body-secondary border-start-0"
-                        onClick={() => {
-                          setTimezone('UTC')
-                          setCurrentPage(1)
-                          setIsLastPage(false)
-                        }}
-                        style={{ cursor: 'pointer' }}
-                        title="Clear timezone"
-                      >
-                        <IconifyIcon icon="solar:close-circle-bold" width={18} height={18} className="text-muted" />
-                      </InputGroup.Text>
-                    )}
-                  </InputGroup>
-                </Col>
-                {(filter !== 'all' || sort !== 'newest' || timezone !== 'UTC') && (
-                  <Col md="auto">
-                    <Button
-                      variant="outline-secondary"
-                      className="shadow-sm"
-                      onClick={clearFilters}
-                      title="Clear all filters"
-                      style={{ fontSize: '0.95rem' }}
-                    >
-                      <IconifyIcon icon="solar:close-circle-bold" width={18} height={18} />
-                    </Button>
-                  </Col>
-                )}
-                <Col md="auto" className="ms-auto">
-                  <div className="position-relative">
-                    <Button
-                      variant={showColumnMenu ? "primary" : "outline-secondary"}
-                      className="shadow-sm"
-                      onClick={() => setShowColumnMenu(!showColumnMenu)}
-                      style={{ fontSize: '0.95rem' }}
-                    >
-                      <IconifyIcon icon="solar:settings-outline" width={18} height={18}  />
-                    </Button>
-                    {showColumnMenu && (
-                      <>
-                          <div
-                            className="position-absolute bg-body border rounded shadow-lg p-3"
-                            style={{
-                              top: '100%',
-                              right: 0,
-                              zIndex: 1000,
-                              minWidth: '320px',
-                              marginTop: '4px'
-                            }}
-                          >
-                          <div className="mb-2 fw-bold" style={{ fontSize: '0.9rem' }}>Column Settings</div>
-                          <div className="form-check mb-3 pb-2 border-bottom">
-                            <input
-                              className="form-check-input"
-                              type="checkbox"
-                              checked={Object.values(columnVisibility).every(v => v)}
-                              onChange={(e) => {
-                                const allChecked = e.target.checked
-                                setColumnVisibility({
-                                  rowNumber: allChecked,
-                                  callerName: allChecked,
-                                  email: allChecked,
-                                  phone: allChecked,
-                                  callTime: allChecked,
-                                  duration: allChecked,
-                                  summary: allChecked,
-                                  status: allChecked,
-                                  action: allChecked,
-                                  urgency: allChecked,
-                                  actions: allChecked
-                                })
-                              }}
-                              id="col-select-all"
-                            />
-                            <label className="form-check-label fw-semibold" htmlFor="col-select-all" style={{ fontSize: '0.9rem', cursor: 'pointer' }}>
-                              Select All
-                            </label>
-                          </div>
-                          {Object.entries({
-                            rowNumber: '#',
-                            callerName: 'Caller Name',
-                            email: 'Email',
-                            phone: 'Phone',
-                            callTime: 'Call Time',
-                            duration: 'Duration',
-                            summary: 'Summary',
-                            status: 'Status',
-                            action: 'Action',
-                            urgency: 'Urgency',
-                            actions: 'Actions'
-                          }).map(([key, label]) => (
-                            <div key={key} className="mb-2 pb-2 border-bottom">
-                              <div className="d-flex align-items-center justify-content-between gap-3">
-                                <div className="form-check flex-grow-1">
-                                  <input
-                                    className="form-check-input"
-                                    type="checkbox"
-                                    checked={columnVisibility[key as keyof typeof columnVisibility]}
-                                    onChange={(e) => {
-                                      const isChecked = e.target.checked
-                                      setColumnVisibility(prev => ({
-                                        ...prev,
-                                        [key]: isChecked
-                                      }))
-                                      // Reset sticky state when column is hidden
-                                      if (!isChecked) {
-                                        setStickyColumns(prev => ({
-                                          ...prev,
-                                          [key]: false
-                                        }))
-                                      }
-                                    }}
-                                    id={`col-${key}`}
-                                  />
-                                  <label className="form-check-label" htmlFor={`col-${key}`} style={{ fontSize: '0.9rem', cursor: 'pointer' }}>
-                                    {label}
-                                  </label>
-                                </div>
-                                {columnVisibility[key as keyof typeof columnVisibility] && (
-                                  <div className="form-check">
-                                    <input
-                                      className="form-check-input"
-                                      type="checkbox"
-                                      checked={stickyColumns[key as keyof typeof stickyColumns]}
-                                      onChange={(e) => {
-                                        const currentStickyCount = Object.values(stickyColumns).filter(v => v).length
-                                        const isCurrentlySticky = stickyColumns[key as keyof typeof stickyColumns]
 
-                                        // Allow unchecking, but limit checking to max 4
-                                        if (e.target.checked && !isCurrentlySticky && currentStickyCount >= 4) {
-                                          // Don't allow more than 4 sticky columns
-                                          return
-                                        }
-
-                                        setStickyColumns(prev => ({
-                                          ...prev,
-                                          [key]: e.target.checked
-                                        }))
-                                      }}
-                                      disabled={!stickyColumns[key as keyof typeof stickyColumns] && Object.values(stickyColumns).filter(v => v).length >= 4}
-                                      id={`sticky-${key}`}
-                                    />
-                                    <label
-                                      className={`form-check-label text-muted ${!stickyColumns[key as keyof typeof stickyColumns] && Object.values(stickyColumns).filter(v => v).length >= 4 ? 'text-muted opacity-50' : ''}`}
-                                      htmlFor={`sticky-${key}`}
-                                      style={{ fontSize: '0.85rem', cursor: !stickyColumns[key as keyof typeof stickyColumns] && Object.values(stickyColumns).filter(v => v).length >= 4 ? 'not-allowed' : 'pointer' }}
-                                      title={!stickyColumns[key as keyof typeof stickyColumns] && Object.values(stickyColumns).filter(v => v).length >= 4 ? 'Maximum 4 sticky columns allowed' : 'Make column sticky'}
-                                    >
-                                      <IconifyIcon icon="solar:pin-outline" width={14} height={14} className="me-1" />
-                                      Sticky
-                                    </label>
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                        <div
-                          className="position-fixed"
-                          style={{
-                            top: 0,
-                            left: 0,
-                            right: 0,
-                            bottom: 0,
-                            zIndex: 999
-                          }}
-                          onClick={() => setShowColumnMenu(false)}
-                        />
-                      </>
-                    )}
-                  </div>
-                </Col>
-              </Row>
-              )}
-
-              {/* Loading State */}
+      {loading && (
+        <Row className="mt-4">
+          <Col xs={12}>
               <style>{`
                 .call-records-loading {
                   background: linear-gradient(135deg, var(--bs-body-tertiary-bg, #f8f9ff) 0%, var(--bs-body-bg, #e8eaf6) 100%);
@@ -848,7 +556,6 @@ const CallRecordsPage = () => {
                   border: 1px solid var(--bs-border-color, #2d3748);
                 }
               `}</style>
-              {loading && (
                 <div className="text-center py-5 call-records-loading">
                   <div style={{ position: 'relative', display: 'inline-block' }}>
                     <Spinner
@@ -878,457 +585,84 @@ const CallRecordsPage = () => {
                   </p>
                   <p className="text-muted small mt-1">Please wait while we fetch your data</p>
                 </div>
-              )}
+          </Col>
+        </Row>
+      )}
 
-              {/* Error State */}
-              {error && !loading && (
-                <div
-                  className="alert d-flex align-items-center"
-                  role="alert"
-                  style={{
-                    background: 'linear-gradient(135deg, #fee2e2 0%, #fecaca 100%)',
-                    border: '2px solid #f87171',
-                    borderRadius: '6px',
-                    padding: '1.25rem'
-                  }}
-                >
-                  <div
-                    style={{
-                      width: '48px',
-                      height: '48px',
-                      borderRadius: '6px',
-                      background: '#dc2626',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      marginRight: '1rem'
-                    }}
+      {!loading && (
+        <Row className="mt-4">
+          <Col xs={12}>
+            <DataTable
+              id="call-records-table"
+              title="Call Records"
+              description="Track and filter every AI call summary"
+              columns={dataTableColumns}
+              data={sortedAndPaginatedSummaries}
+              loading={loading}
+              error={error}
+              onRetry={fetchSummaries}
+              minTableWidth={1650}
+              toolbar={{
+                showFilters,
+                onToggleFilters: () => setShowFilters((prev) => !prev),
+                search: {
+                  value: searchQuery,
+                  placeholder: 'Search by name, email, or phone...',
+                  onChange: setSearchQuery,
+                  onClear: () => setSearchQuery('')
+                },
+                filters: toolbarFilters,
+                extra: filtersDirty ? (
+                  <Button
+                    variant="outline-secondary"
+                    className="shadow-sm"
+                    onClick={clearFilters}
+                    title="Clear all filters"
+                    style={{ fontSize: '0.95rem' }}
                   >
-                    <IconifyIcon icon="solar:danger-triangle-bold" width={24} height={24} style={{ color: 'white' }} />
-                  </div>
-                  <div className="flex-grow-1">
-                    <h6 className="mb-1" style={{ color: '#991b1b', fontWeight: '600' }}>Error Loading Records</h6>
-                    <p className="mb-0" style={{ color: '#7f1d1d' }}>{error}</p>
-                  </div>
-                  <button
-                    onClick={fetchSummaries}
-                    style={{
-                      border: 'none',
-                      background: '#dc2626',
-                      color: 'white',
-                      padding: '0.5rem 1rem',
-                      borderRadius: '6px',
-                      cursor: 'pointer',
-                      fontWeight: '600',
-                      transition: 'all 0.2s ease'
-                    }}
-                    onMouseEnter={(e) => e.currentTarget.style.background = '#b91c1c'}
-                    onMouseLeave={(e) => e.currentTarget.style.background = '#dc2626'}
-                  >
-                    Try Again
-                  </button>
-                </div>
-              )}
-
-              {/* Table */}
-              {!loading && !error && (
-                <>
-                  {sortedAndPaginatedSummaries.length === 0 && summaries.length === 0 ? (
-                    <div
-                      className="text-center py-5"
-                      style={{
-                        background: 'linear-gradient(135deg, #f9fafb 0%, #e5e7eb 100%)',
-                        borderRadius: '6px',
-                        padding: '4rem 2rem'
-                      }}
-                    >
-                      <div
-                        style={{
-                          width: '120px',
-                          height: '120px',
-                          borderRadius: '50%',
-                          background: '#4f46e5',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          marginBottom: '1.5rem',
-                          boxShadow: '0 8px 16px rgba(79,70,229,0.2)'
-                        }}
-                      >
-                        <IconifyIcon icon="solar:call-chat-bold" width={56} height={56} style={{ color: 'white' }} />
-                      </div>
-                      <h5 style={{ color: '#374151', fontWeight: '600', marginBottom: '0.5rem' }}>
-                        No Call Records Found
-                      </h5>
-                      <p className="text-muted mb-0" style={{ fontSize: '1rem' }}>
-                        {debouncedSearch
+                    <IconifyIcon icon="solar:close-circle-bold" width={18} height={18} />
+                  </Button>
+                ) : undefined
+              }}
+              columnPanel={{
+                enableColumnVisibility: true,
+                enableSticky: true,
+                maxSticky: 4
+              }}
+              emptyState={{
+                title: 'No Call Records Found',
+                description: debouncedSearch
                           ? 'Try adjusting your search or filter criteria to see results.'
-                          : 'There are no call records available at this time.'}
-                      </p>
-                    </div>
-                  ) : (
-                    <>
-                      <div
-                        className="table-responsive"
-                        style={{
-                          borderRadius: '6px',
-                          boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
-                          overflowX: 'auto',
-                          overflowY: 'auto',
-                          maxWidth: '100%',
-                          maxHeight: 'calc(100vh - 350px)'
-                        }}
-                      >
-                        <style>{`
-                          /* Ensure sticky columns have solid backgrounds */
-                          .sticky-column-header {
-                            background-color: var(--bs-body-tertiary-bg, #f8f9fa) !important;
-                            z-index: 102 !important;
-                          }
-                          .sticky-column-cell {
-                            background-color: var(--bs-body-bg, #ffffff) !important;
-                            z-index: 100 !important;
-                          }
-                          /* Dark mode support */
-                          [data-bs-theme="dark"] .sticky-column-header {
-                            background-color: var(--bs-body-tertiary-bg, #2f3943) !important;
-                          }
-                          [data-bs-theme="dark"] .sticky-column-cell {
-                            background-color: var(--bs-body-bg, #22282e) !important;
-                          }
-                          /* Ensure sticky header row is above body content */
-                          thead[style*="position: sticky"] th.sticky-column-header {
-                            z-index: 102 !important;
-                          }
-                          tbody td.sticky-column-cell {
-                            z-index: 100 !important;
-                          }
-                        `}</style>
-                        <Table hover className="align-middle mb-0" style={{ borderCollapse: 'separate', borderSpacing: 0, minWidth: '1650px' }}>
-                          <thead className="table-light" style={{
-                            position: 'sticky',
-                            top: 0,
-                            zIndex: 101,
-                            boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-                            backgroundColor: 'var(--bs-body-tertiary-bg, #f8f9fa)'
-                          }}>
-                            <tr>
-                              {columnVisibility.rowNumber && (
-                                <th
-                                  style={{
-                                    width: '60px',
-                                    borderBottom: 'none',
-                                    padding: '1rem 0.75rem',
-                                    fontWeight: '600',
-                                    fontSize: '0.85rem',
-                                    letterSpacing: '0.5px',
-                                    ...getStickyStyles('rowNumber', true)
-                                  }}
-                                  className={`text-center ${getStickyClassName('rowNumber', true)}`}
-                                >
-                                  #
-                                </th>
-                              )}
-                              {columnVisibility.callerName && (
-                                <th
-                                  style={{
-                                    width: '150px',
-                                    borderBottom: 'none',
-                                    padding: '1rem 0.75rem',
-                                    fontWeight: '600',
-                                    fontSize: '0.85rem',
-                                    letterSpacing: '0.5px',
-                                    ...getStickyStyles('callerName', true)
-                                  }}
-                                  className={getStickyClassName('callerName', true)}
-                                >
-                                  Caller Name
-                              </th>
-                              )}
-                              {columnVisibility.email && (
-                                <th
-                                  style={{
-                                    width: '200px',
-                                    borderBottom: 'none',
-                                    padding: '1rem 0.75rem',
-                                    fontWeight: '600',
-                                    fontSize: '0.85rem',
-                                    letterSpacing: '0.5px',
-                                    ...getStickyStyles('email', true)
-                                  }}
-                                  className={getStickyClassName('email', true)}
-                                >
-                                  Email
-                              </th>
-                              )}
-                              {columnVisibility.phone && (
-                                <th
-                                  style={{
-                                    width: '130px',
-                                    borderBottom: 'none',
-                                    padding: '1rem 0.75rem',
-                                    fontWeight: '600',
-                                    fontSize: '0.85rem',
-                                    letterSpacing: '0.5px',
-                                    ...getStickyStyles('phone', true)
-                                  }}
-                                  className={getStickyClassName('phone', true)}
-                                >
-                                  Phone
-                              </th>
-                              )}
-                              {columnVisibility.callTime && (
-                                <th
-                                  style={{
-                                    width: '200px',
-                                    borderBottom: 'none',
-                                    padding: '1rem 0.75rem',
-                                    fontWeight: '600',
-                                    fontSize: '0.85rem',
-                                    letterSpacing: '0.5px',
-                                    ...getStickyStyles('callTime', true)
-                                  }}
-                                  className={getStickyClassName('callTime', true)}
-                                >
-                                  Call Time
-                              </th>
-                              )}
-                              {columnVisibility.duration && (
-                                <th
-                                  style={{
-                                    width: '120px',
-                                    borderBottom: 'none',
-                                    padding: '1rem 0.75rem',
-                                    fontWeight: '600',
-                                    fontSize: '0.85rem',
-                                    letterSpacing: '0.5px',
-                                    ...getStickyStyles('duration', true)
-                                  }}
-                                  className={`text-center ${getStickyClassName('duration', true)}`}
-                                >
-                                  Duration
-                              </th>
-                              )}
-                              {columnVisibility.summary && (
-                                <th
-                                  style={{
-                                    width: '250px',
-                                    borderBottom: 'none',
-                                    padding: '1rem 0.75rem',
-                                    fontWeight: '600',
-                                    fontSize: '0.85rem',
-                                    letterSpacing: '0.5px',
-                                    ...getStickyStyles('summary', true)
-                                  }}
-                                  className={getStickyClassName('summary', true)}
-                                >
-                                  Summary
-                              </th>
-                              )}
-                              {columnVisibility.status && (
-                                <th
-                                  style={{
-                                    width: '120px',
-                                    borderBottom: 'none',
-                                    padding: '1rem 0.75rem',
-                                    fontWeight: '600',
-                                    fontSize: '0.85rem',
-                                    letterSpacing: '0.5px',
-                                    ...getStickyStyles('status', true)
-                                  }}
-                                  className={`text-center ${getStickyClassName('status', true)}`}
-                                >
-                                  Status
-                              </th>
-                              )}
-                              {columnVisibility.action && (
-                                <th
-                                  style={{
-                                    width: '120px',
-                                    borderBottom: 'none',
-                                    padding: '1rem 0.75rem',
-                                    fontWeight: '600',
-                                    fontSize: '0.85rem',
-                                    letterSpacing: '0.5px',
-                                    ...getStickyStyles('action', true)
-                                  }}
-                                  className={`text-center ${getStickyClassName('action', true)}`}
-                                >
-                                  Action
-                              </th>
-                              )}
-                              {columnVisibility.urgency && (
-                                <th
-                                  style={{
-                                    width: '100px',
-                                    borderBottom: 'none',
-                                    padding: '1rem 0.75rem',
-                                    fontWeight: '600',
-                                    fontSize: '0.85rem',
-                                    letterSpacing: '0.5px',
-                                    ...getStickyStyles('urgency', true)
-                                  }}
-                                  className={`text-center ${getStickyClassName('urgency', true)}`}
-                                >
-                                  Urgency
-                              </th>
-                              )}
-                              {columnVisibility.actions && (
-                                <th
-                                  style={{
-                                    width: '150px',
-                                    borderBottom: 'none',
-                                    padding: '1rem 0.75rem',
-                                    fontWeight: '600',
-                                    fontSize: '0.85rem',
-                                    letterSpacing: '0.5px',
-                                    ...getStickyStyles('actions', true)
-                                  }}
-                                  className={`text-center ${getStickyClassName('actions', true)}`}
-                                >
-                                  Actions
-                              </th>
-                              )}
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {sortedAndPaginatedSummaries.map((summary, index) => (
-                              <tr
-                                key={summary.id || index}
-                                style={{
-                                  borderBottom: '1px solid #dee2e6'
-                                }}
-                              >
-                                {columnVisibility.rowNumber && (
-                                  <td className={`text-center ${getStickyClassName('rowNumber', false)}`} style={{ padding: '1rem 0.75rem', ...getStickyStyles('rowNumber', false) }}>
-                                    <span className="text-muted">
-                                      {(currentPage - 1) * pageSize + index + 1}
-                                    </span>
-                                </td>
-                                )}
-                                {columnVisibility.callerName && (
-                                  <td className={getStickyClassName('callerName', false)} style={{ padding: '1rem 0.75rem', ...getStickyStyles('callerName', false) }}>
-                                    <span className="fw-medium">
-                                      {summary['Caller Name'] || <span className="text-muted fst-italic">N/A</span>}
-                                    </span>
-                                </td>
-                                )}
-                                {columnVisibility.email && (
-                                  <td className={getStickyClassName('email', false)} style={{ padding: '1rem 0.75rem', ...getStickyStyles('email', false) }}>
-                                  <div className="text-truncate" style={{ maxWidth: '200px' }} title={summary['Caller Email'] || ''}>
-                                      {summary['Caller Email'] || <span className="text-muted fst-italic">N/A</span>}
-                                  </div>
-                                </td>
-                                )}
-                                {columnVisibility.phone && (
-                                  <td className={getStickyClassName('phone', false)} style={{ padding: '1rem 0.75rem', ...getStickyStyles('phone', false) }}>
-                                    {summary['Caller Number'] || <span className="text-muted fst-italic">N/A</span>}
-                                  </td>
-                                )}
-                                {columnVisibility.callTime && (
-                                  <td className={getStickyClassName('callTime', false)} style={{ padding: '1rem 0.75rem', fontSize: '0.9rem', ...getStickyStyles('callTime', false) }}>
-                                    {summary['Call timing'] || summary['Call Timing'] ? (
-                                      <span>{formatCallTime(summary['Call timing'] || summary['Call Timing'])}</span>
-                                    ) : (
-                                      <span className="text-muted fst-italic">N/A</span>
-                                    )}
-                                </td>
-                                )}
-                                {columnVisibility.duration && (
-                                  <td className={`text-center ${getStickyClassName('duration', false)}`} style={{ padding: '1rem 0.75rem', ...getStickyStyles('duration', false) }}>
-                                  {summary['Duration'] ? (
-                                      <Badge bg="info" className="px-2 py-1">{summary['Duration']}</Badge>
-                                  ) : (
-                                      <span className="text-muted fst-italic">N/A</span>
-                                  )}
-                                </td>
-                                )}
-                                {columnVisibility.summary && (
-                                  <td className={getStickyClassName('summary', false)} style={{ padding: '1rem 0.75rem', ...getStickyStyles('summary', false) }}>
-                                    <div
-                                      className="text-truncate"
-                                      style={{
-                                        maxWidth: '250px',
-                                        fontSize: '0.9rem',
-                                        color: '#4b5563',
-                                        lineHeight: '1.5'
-                                      }}
-                                      title={summary['Brief Summary'] || ''}
-                                    >
-                                    {summary['Brief Summary']
-                                      ? (summary['Brief Summary'].length > 80
-                                        ? summary['Brief Summary'].substring(0, 80) + '...'
-                                        : summary['Brief Summary'])
-                                        : <span className="text-muted fst-italic">No summary available</span>}
-                                  </div>
-                                </td>
-                                )}
-                                {columnVisibility.status && (
-                                  <td className={`text-center ${getStickyClassName('status', false)}`} style={{ padding: '1rem 0.75rem', ...getStickyStyles('status', false) }}>
-                                  {summary['View_Status'] ? (
-                                      <Badge bg="success" className="px-2 py-1">Read</Badge>
-                                  ) : (
-                                      <Badge bg="warning" text="dark" className="px-2 py-1">Unread</Badge>
-                                  )}
-                                </td>
-                                )}
-                                {columnVisibility.action && (
-                                  <td className={`text-center ${getStickyClassName('action', false)}`} style={{ padding: '1rem 0.75rem', ...getStickyStyles('action', false) }}>
-                                  {summary['Action_flag'] ? (
-                                      <Badge
-                                        bg={summary['Action_status'] === 'Done' ? 'success' : 'danger'}
-                                        className="px-2 py-1"
-                                      >
-                                      {summary['Action_status'] || 'Pending'}
-                                    </Badge>
-                                  ) : (
-                                      <Badge bg="secondary" className="px-2 py-1">None</Badge>
-                                  )}
-                                </td>
-                                )}
-                                {columnVisibility.urgency && (
-                                  <td className={`text-center ${getStickyClassName('urgency', false)}`} style={{ padding: '1rem 0.75rem', ...getStickyStyles('urgency', false) }}>
-                                  {summary['Urgency'] ? (
-                                      <Badge bg="danger" className="px-2 py-1">Urgent</Badge>
-                                  ) : (
-                                      <Badge bg="secondary" className="px-2 py-1">Normal</Badge>
-                                  )}
-                                </td>
-                                )}
-                                {columnVisibility.actions && (
-                                  <td className={`text-center ${getStickyClassName('actions', false)}`} style={{ padding: '1rem 0.75rem', ...getStickyStyles('actions', false) }}>
-                                  <div className="d-flex gap-2 justify-content-center">
-                                    <Button
-                                        variant="primary"
-                                      size="sm"
-                                      onClick={() => handleViewDetails(summary)}
-                                      title="View Details"
-                                    >
-                                      <IconifyIcon icon="solar:eye-outline" width={16} height={16} />
-                                    </Button>
-                                    {summary['Recording Link'] && (
-                                      <Button
-                                          variant="success"
-                                        size="sm"
-                                        as="a"
-                                        href={summary['Recording Link']}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        title="Play Recording"
-                                      >
-                                        <IconifyIcon icon="solar:play-outline" width={16} height={16} />
-                                      </Button>
-                                    )}
-                                  </div>
-                                </td>
-                                )}
-                              </tr>
-                            ))}
-                          </tbody>
-                        </Table>
-                      </div>
+                  : 'There are no call records available at this time.',
+                icon: emptyStateIcon
+              }}
+              sorting={{
+                state: { columnKey: sortColumn, direction: sortDirection },
+                onToggle: handleSort
+              }}
+              rowKey={(row, index) => row.id ?? `${row['Conversation ID'] ?? 'row'}-${index}`}
+              tableContainerStyle={{
+                maxHeight: 'calc(100vh - 350px)',
+                overflowY: 'auto',
+                maxWidth: '100%'
+              }}
+              pagination={{
+                currentPage,
+                pageSize,
+                totalRecords: totalRecordsDisplay,
+                startRecord,
+                endRecord,
+                hasMore,
+                isLastPage,
+                totalPages,
+                onPageChange: handlePageChange,
+                onPageSizeChange: handlePageSizeChange
+              }}
+            />
+          </Col>
+        </Row>
+      )}
 
-                      {/* Detail Modal */}
                       <Modal show={showDetailModal} onHide={() => setShowDetailModal(false)} size="lg" scrollable>
                         <ModalHeader closeButton>
                           <ModalTitle>Call Record Details</ModalTitle>
@@ -1450,146 +784,9 @@ const CallRecordsPage = () => {
                         </ModalFooter>
                       </Modal>
 
-                      {/* Pagination */}
-                      <Row className="mt-4 pt-3 border-top">
-                        <Col sm={6} className="mb-3 mb-sm-0">
-                        <div className="d-flex align-items-center gap-2">
-                          <span className="text-muted">Rows per page:</span>
-                          <Form.Select
-                            value={pageSize}
-                            onChange={(e) => handlePageSizeChange(Number(e.target.value))}
-                              style={{ width: 'auto', minWidth: '70px' }}
-                            size="sm"
-                          >
-                            <option value={10}>10</option>
-                            <option value={25}>25</option>
-                            <option value={50}>50</option>
-                            <option value={100}>100</option>
-                          </Form.Select>
-                            <span className="text-muted ms-2">
-                              Showing {sortedAndPaginatedSummaries.length} of {typeof totalRecords === 'string' ? totalRecords.replace('+', '') : totalRecords.toLocaleString()} records
-                            </span>
-                        </div>
-                        </Col>
-                        <Col sm={6}>
-                          <ul className="pagination pagination-rounded justify-content-sm-end m-0">
-                            <li className={`page-item ${currentPage === 1 || loading ? 'disabled' : ''}`}>
-                              <a
-                                href="#"
-                                className="page-link"
-                                onClick={(e) => {
-                                  e.preventDefault()
-                                  if (currentPage > 1 && !loading) handlePageChange(currentPage - 1)
-                                }}
-                              >
-                                <IconifyIcon icon="tdesign:arrow-left" />
-                              </a>
-                            </li>
-                            {(() => {
-                              const pages = []
-                              const maxPages = totalPages > 0 ? totalPages : 1
-
-                              // Always show first page
-                              pages.push(
-                                <li key={1} className={`page-item ${currentPage === 1 ? 'active' : ''}`}>
-                                  <a
-                                    href="#"
-                                    className="page-link"
-                                    onClick={(e) => {
-                                      e.preventDefault()
-                                      if (!loading) handlePageChange(1)
-                                    }}
-                                  >
-                                    1
-                                  </a>
-                                </li>
-                              )
-
-                              // Show ellipsis if current page is far from start
-                              if (currentPage > 3) {
-                                pages.push(
-                                  <li key="ellipsis-start" className="page-item disabled">
-                                    <span className="page-link">...</span>
-                                  </li>
-                                )
-                              }
-
-                              // Show pages around current page
-                              for (let i = Math.max(2, currentPage - 1); i <= Math.min(maxPages - 1, currentPage + 1); i++) {
-                                pages.push(
-                                  <li key={i} className={`page-item ${currentPage === i ? 'active' : ''}`}>
-                                    <a
-                                      href="#"
-                                      className="page-link"
-                                      onClick={(e) => {
-                                        e.preventDefault()
-                                        if (!loading) handlePageChange(i)
-                                      }}
-                                    >
-                                      {i}
-                                    </a>
-                                  </li>
-                                )
-                              }
-
-                              // Show ellipsis if current page is far from end
-                              if (currentPage < maxPages - 2) {
-                                pages.push(
-                                  <li key="ellipsis-end" className="page-item disabled">
-                                    <span className="page-link">...</span>
-                                  </li>
-                                )
-                              }
-
-                              // Always show last page if there's more than 1 page
-                              if (maxPages > 1) {
-                                pages.push(
-                                  <li key={maxPages} className={`page-item ${currentPage === maxPages ? 'active' : ''}`}>
-                                    <a
-                                      href="#"
-                                      className="page-link"
-                                      onClick={(e) => {
-                                        e.preventDefault()
-                                        if (!loading) handlePageChange(maxPages)
-                                      }}
-                                    >
-                                      {maxPages}
-                                    </a>
-                                  </li>
-                                )
-                              }
-
-                              return pages
-                            })()}
-                            <li className={`page-item ${isLastPage || loading || sortedAndPaginatedSummaries.length === 0 ? 'disabled' : ''}`}>
-                              <a
-                                href="#"
-                                className="page-link"
-                                onClick={(e) => {
-                                  e.preventDefault()
-                                  if (!isLastPage && !loading && sortedAndPaginatedSummaries.length > 0) {
-                                    handlePageChange(currentPage + 1)
-                                  }
-                                }}
-                              >
-                                <IconifyIcon icon="tdesign:arrow-right" />
-                              </a>
-                            </li>
-                          </ul>
-                        </Col>
-                      </Row>
-                    </>
-                  )}
-                </>
-              )}
-            </CardBody>
-          </Card>
-        </Col>
-      </Row>
       <Footer />
     </>
   )
 }
 
 export default CallRecordsPage
-
