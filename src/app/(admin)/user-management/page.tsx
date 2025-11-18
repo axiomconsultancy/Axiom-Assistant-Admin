@@ -20,8 +20,10 @@ import type { DataTableColumn, DataTableFilterControl } from '@/components/table
 import IconifyIcon from '@/components/wrapper/IconifyIcon'
 import { useAuth } from '@/context/useAuthContext'
 import { adminUserApi } from '@/lib/admin-user-api'
+import { adminAgentApi } from '@/lib/admin-agent-api'
 import type { UserOut } from '@/types/auth'
 import type { AdminUserCreatePayload, AdminUserUpdatePayload } from '@/types/admin-user'
+import type { UnassignedAgent } from '@/types/admin-agent'
 
 type ModalMode = 'create' | 'edit' | 'assign-agent'
 
@@ -58,6 +60,8 @@ const UserManagementPage = () => {
   const [editingUserId, setEditingUserId] = useState<string | null>(null)
   const [agentAssignmentUserId, setAgentAssignmentUserId] = useState<string | null>(null)
   const [agentIdInput, setAgentIdInput] = useState('')
+  const [unassignedAgents, setUnassignedAgents] = useState<UnassignedAgent[]>([])
+  const [agentsOptionsLoading, setAgentsOptionsLoading] = useState(false)
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearch(searchQuery.trim()), 400)
@@ -150,6 +154,32 @@ const UserManagementPage = () => {
     setFormErrors(errors)
     return Object.keys(errors).length === 0
   }
+
+  const loadUnassignedAgents = useCallback(
+    async (currentAgentId?: string | null) => {
+      if (!token) return
+      setAgentsOptionsLoading(true)
+      try {
+        const response = await adminAgentApi.getUnassignedAgents(token)
+        if (response.error || !response.data) {
+          toast.error(response.error || 'Failed to load unassigned agents')
+          setUnassignedAgents([])
+          return
+        }
+        let agents = response.data
+        if (currentAgentId && !agents.some((agent) => agent.id === currentAgentId)) {
+          agents = [{ id: currentAgentId, name: `${currentAgentId} (currently assigned)` }, ...agents]
+        }
+        setUnassignedAgents(agents)
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : 'Unable to load unassigned agents')
+        setUnassignedAgents([])
+      } finally {
+        setAgentsOptionsLoading(false)
+      }
+    },
+    [token]
+  )
 
   const handleFormSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -264,11 +294,21 @@ const UserManagementPage = () => {
     }
   }
 
-  const handleOpenAgentModal = (userRecord: UserOut) => {
+  const handleOpenAgentModal = async (userRecord: UserOut) => {
+    if (!token) {
+      toast.error('Authentication required')
+      return
+    }
+    setAgentLoadingId(userRecord.id)
     setAgentAssignmentUserId(userRecord.id)
-    setAgentIdInput(userRecord.agent_id || '')
+    setAgentIdInput(userRecord.agent_id ?? '')
     setModalMode('assign-agent')
     setShowModal(true)
+    try {
+      await loadUnassignedAgents(userRecord.agent_id)
+    } finally {
+      setAgentLoadingId(null)
+    }
   }
 
   const handleAssignAgent = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -596,14 +636,23 @@ const UserManagementPage = () => {
           <ModalBody>
             {modalMode === 'assign-agent' ? (
               <Form.Group className="mb-0">
-                <Form.Label>Agent ID</Form.Label>
-                <Form.Control
-                  value={agentIdInput}
-                  onChange={(e) => setAgentIdInput(e.target.value)}
-                  placeholder="Enter agent ID (leave empty to unassign)"
-                />
+                <Form.Label>Select Agent</Form.Label>
+                {agentsOptionsLoading ? (
+                  <div className="text-center py-3">
+                    <span className="spinner-border spinner-border-sm" role="status" />
+                  </div>
+                ) : (
+                  <Form.Select value={agentIdInput} onChange={(e) => setAgentIdInput(e.target.value)}>
+                    <option value="">No agent (unassign)</option>
+                    {unassignedAgents.map((agent) => (
+                      <option key={agent.id} value={agent.id}>
+                        {agent.name}
+                      </option>
+                    ))}
+                  </Form.Select>
+                )}
                 <Form.Text className="text-muted">
-                  Enter an agent ID to assign, or leave empty to unassign the current agent.
+                  Choose an available agent to assign, or select "No agent" to remove the current assignment.
                 </Form.Text>
               </Form.Group>
             ) : (
