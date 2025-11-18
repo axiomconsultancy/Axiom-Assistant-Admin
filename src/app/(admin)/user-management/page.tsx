@@ -51,7 +51,8 @@ const UserManagementPage = () => {
   const [formData, setFormData] = useState(initialFormState)
   const [formErrors, setFormErrors] = useState<Record<string, string>>({})
   const [submitting, setSubmitting] = useState(false)
-  const [actionLoadingId, setActionLoadingId] = useState<string | null>(null)
+  const [blockLoadingId, setBlockLoadingId] = useState<string | null>(null)
+  const [deleteLoadingId, setDeleteLoadingId] = useState<string | null>(null)
   const [editingUserId, setEditingUserId] = useState<string | null>(null)
 
   useEffect(() => {
@@ -206,7 +207,7 @@ const UserManagementPage = () => {
 
   const handleToggleStatus = async (userRecord: UserOut) => {
     if (!token) return
-    setActionLoadingId(userRecord.id)
+    setBlockLoadingId(userRecord.id)
     setError(null)
 
     try {
@@ -221,7 +222,7 @@ const UserManagementPage = () => {
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unable to update status')
     } finally {
-      setActionLoadingId(null)
+      setBlockLoadingId(null)
     }
   }
 
@@ -230,7 +231,7 @@ const UserManagementPage = () => {
     const confirmed = window.confirm(`Delete ${userRecord.username}? This action cannot be undone.`)
     if (!confirmed) return
 
-    setActionLoadingId(userRecord.id)
+    setDeleteLoadingId(userRecord.id)
     setError(null)
 
     try {
@@ -243,7 +244,7 @@ const UserManagementPage = () => {
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unable to delete user')
     } finally {
-      setActionLoadingId(null)
+      setDeleteLoadingId(null)
     }
   }
 
@@ -348,10 +349,10 @@ const UserManagementPage = () => {
               variant={row.blocked ? 'success' : 'warning'}
               onClick={() => handleToggleStatus(row)}
               title={row.blocked ? 'Unblock user' : 'Block user'}
-              disabled={actionLoadingId === row.id}
+              disabled={blockLoadingId === row.id}
               className="d-flex align-items-center gap-1"
             >
-              {actionLoadingId === row.id ? (
+              {blockLoadingId === row.id ? (
                 <span className="spinner-border spinner-border-sm" role="status" />
               ) : (
                 <>
@@ -369,9 +370,9 @@ const UserManagementPage = () => {
               variant="outline-danger"
               onClick={() => handleDeleteUser(row)}
               title="Delete user"
-              disabled={actionLoadingId === row.id}
+              disabled={deleteLoadingId === row.id}
             >
-              {actionLoadingId === row.id ? (
+              {deleteLoadingId === row.id ? (
                 <span className="spinner-border spinner-border-sm" role="status" />
               ) : (
                 <IconifyIcon icon="solar:trash-bin-minimalistic-outline" width={16} height={16} />
@@ -381,7 +382,7 @@ const UserManagementPage = () => {
         )
       }
     ],
-    [currentPage, pageSize, actionLoadingId]
+    [currentPage, pageSize, blockLoadingId, deleteLoadingId, users]
   )
 
   const filters: DataTableFilterControl[] = [
