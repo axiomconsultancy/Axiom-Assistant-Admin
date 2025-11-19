@@ -22,10 +22,10 @@ export const getMenuItems = (userRole?: 'admin' | 'user' | null): MenuItemType[]
         url: '/dashboards',
       },
       {
-        key: 'create-agent',
-        label: 'Create Agent',
+        key: 'agents',
+        label: 'Agents',
         icon: 'solar:user-plus-outline',
-        url: '/create-agent',
+        url: '/agents',
       },
       {
         key: 'outbound-calls',
