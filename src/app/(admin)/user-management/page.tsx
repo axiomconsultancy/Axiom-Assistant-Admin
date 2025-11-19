@@ -23,7 +23,7 @@ import { adminUserApi } from '@/lib/admin-user-api'
 import { adminAgentApi } from '@/lib/admin-agent-api'
 import type { UserOut } from '@/types/auth'
 import type { AdminUserCreatePayload, AdminUserUpdatePayload } from '@/types/admin-user'
-import type { UnassignedAgent } from '@/types/admin-agent'
+import type { AdminAgent, UnassignedAgent } from '@/types/admin-agent'
 
 type ModalMode = 'create' | 'edit' | 'assign-agent'
 
@@ -32,6 +32,15 @@ const initialFormState: AdminUserCreatePayload = {
   email: '',
   password: '',
   agent_id: ''
+}
+
+const normalizeAgentItems = (payload: unknown): AdminAgent[] => {
+  if (!payload) return []
+  if (Array.isArray(payload)) return payload as AdminAgent[]
+  if (typeof payload === 'object' && payload !== null && Array.isArray((payload as { items?: AdminAgent[] }).items)) {
+    return (payload as { items?: AdminAgent[] }).items ?? []
+  }
+  return []
 }
 
 const UserManagementPage = () => {
@@ -62,6 +71,7 @@ const UserManagementPage = () => {
   const [agentIdInput, setAgentIdInput] = useState('')
   const [unassignedAgents, setUnassignedAgents] = useState<UnassignedAgent[]>([])
   const [agentsOptionsLoading, setAgentsOptionsLoading] = useState(false)
+  const [allAgentsMap, setAllAgentsMap] = useState<Map<string, string>>(new Map())
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearch(searchQuery.trim()), 400)
@@ -121,6 +131,34 @@ const UserManagementPage = () => {
     fetchUsers()
   }, [fetchUsers])
 
+  // Load all agents to build name lookup map
+  useEffect(() => {
+    const loadAllAgents = async () => {
+      if (!token || !isAuthenticated || user?.role !== 'admin') return
+      try {
+        const response = await adminAgentApi.getAllAgents(token, { limit: 1000 })
+        const agentsList = normalizeAgentItems(response.data)
+        if (agentsList.length) {
+          const agentsMap = new Map<string, string>()
+          agentsList.forEach((agent) => {
+            const agentId = agent.agent_id || agent.id
+            const agentName = agent.name || 'Unnamed Agent'
+            if (agentId) {
+              agentsMap.set(agentId, agentName)
+            }
+          })
+          setAllAgentsMap(agentsMap)
+        } else {
+          setAllAgentsMap(new Map())
+        }
+      } catch (err) {
+        // Silently fail - we'll just show IDs if names aren't available
+        console.error('Failed to load agents for name lookup:', err)
+      }
+    }
+    loadAllAgents()
+  }, [token, isAuthenticated, user?.role])
+
   const resetForm = () => {
     setFormData(initialFormState)
     setFormErrors({})
@@ -160,6 +198,20 @@ const UserManagementPage = () => {
       if (!token) return
       setAgentsOptionsLoading(true)
       try {
+        // Fetch all agents to build a name lookup map
+        const allAgentsResponse = await adminAgentApi.getAllAgents(token, { limit: 1000 })
+        const allAgents = normalizeAgentItems(allAgentsResponse.data)
+        const agentsMap = new Map<string, string>()
+        allAgents.forEach((agent) => {
+          const agentId = agent.agent_id || agent.id
+          const agentName = agent.name || 'Unnamed Agent'
+          if (agentId) {
+            agentsMap.set(agentId, agentName)
+          }
+        })
+        setAllAgentsMap(agentsMap)
+
+        // Fetch unassigned agents
         const response = await adminAgentApi.getUnassignedAgents(token)
         if (response.error || !response.data) {
           toast.error(response.error || 'Failed to load unassigned agents')
@@ -167,8 +219,13 @@ const UserManagementPage = () => {
           return
         }
         let agents = response.data
-        if (currentAgentId && !agents.some((agent) => agent.id === currentAgentId)) {
-          agents = [{ id: currentAgentId, name: `${currentAgentId} (currently assigned)` }, ...agents]
+
+        // If user has a currently assigned agent, add it to the list
+        if (currentAgentId) {
+          const currentAgentName = agentsMap.get(currentAgentId) || currentAgentId
+          if (!agents.some((agent) => agent.id === currentAgentId)) {
+            agents = [{ id: currentAgentId, name: `${currentAgentName} (currently assigned)` }, ...agents]
+          }
         }
         setUnassignedAgents(agents)
       } catch (err) {
@@ -401,14 +458,20 @@ const UserManagementPage = () => {
       },
       {
         key: 'agent',
-        header: 'Agent ID',
-        minWidth: 160,
-        render: (row) =>
-          row.agent_id ? (
-            <span className="text-wrap">{row.agent_id}</span>
-          ) : (
-            <span className="text-muted fst-italic">Unassigned</span>
+        header: 'Agent',
+        minWidth: 200,
+        render: (row) => {
+          if (!row.agent_id) {
+            return <span className="text-muted fst-italic">Unassigned</span>
+          }
+          const agentName = allAgentsMap.get(row.agent_id) || row.agent_id
+          return (
+            <div>
+              <div className="fw-medium">{agentName}</div>
+              <small className="text-muted d-block">{row.agent_id}</small>
+            </div>
           )
+        }
       },
       {
         key: 'createdAt',
@@ -494,7 +557,7 @@ const UserManagementPage = () => {
         )
       }
     ],
-    [currentPage, pageSize, blockLoadingId, deleteLoadingId, agentLoadingId, users]
+    [currentPage, pageSize, blockLoadingId, deleteLoadingId, agentLoadingId, users, allAgentsMap]
   )
 
   const filters: DataTableFilterControl[] = [
