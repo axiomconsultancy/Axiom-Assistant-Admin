@@ -7,6 +7,8 @@ import type {
   AdminAgentQueryParams
 } from '@/types/admin-agent'
 
+type UpdateAgentPayload = Partial<CreateAgentPayload> & Record<string, any>
+
 export const adminAgentApi = {
   async getUnassignedAgents(token: string) {
     return apiClient.get<UnassignedAgent[]>('/auth/admin/agents/unassigned', token)
@@ -36,4 +38,10 @@ export const adminAgentApi = {
   async createAgent(token: string, payload: CreateAgentPayload) {
     return apiClient.post<AdminAgent>('/auth/admin/agents', payload, token)
   },
+  async updateAgent(token: string, agentId: string, payload: UpdateAgentPayload) {
+    return apiClient.patch<AdminAgent>(`/auth/admin/agents/${agentId}`, payload, token)
+  },
+  async deleteAgent(token: string, agentId: string) {
+    return apiClient.delete<void>(`/auth/admin/agents/${agentId}`, token)
+  }
 }
