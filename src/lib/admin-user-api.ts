@@ -34,7 +34,7 @@ export const adminUserApi = {
   },
 
   async deleteUser(token: string, userId: string) {
-    return apiClient.delete<void>(`/auth/admin/users/${userId}`, token)
+    return apiClient.delete<void>(`/auth/admin/users/${userId}/soft`, token)
   },
 }
 
