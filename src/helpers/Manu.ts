@@ -27,12 +27,12 @@ export const getMenuItems = (userRole?: 'admin' | 'user' | null): MenuItemType[]
         icon: 'solar:user-plus-outline',
         url: '/agents',
       },
-      {
-        key: 'outbound-calls',
-        label: 'Outbound Calls',
-        icon: 'solar:phone-calling-outline',
-        url: '/outbound-calls',
-      },
+      // {
+      //   key: 'outbound-calls',
+      //   label: 'Outbound Calls',
+      //   icon: 'solar:phone-calling-outline',
+      //   url: '/outbound-calls',
+      // },
       {
         key: 'documents',
         label: 'Documents',
