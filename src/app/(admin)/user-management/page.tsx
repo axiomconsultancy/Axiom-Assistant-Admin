@@ -43,6 +43,19 @@ const normalizeAgentItems = (payload: unknown): AdminAgent[] => {
   return []
 }
 
+const normalizeUnassignedAgents = (payload: unknown): UnassignedAgent[] => {
+  if (!payload) return []
+  if (Array.isArray(payload)) return payload as UnassignedAgent[]
+  if (
+    typeof payload === 'object' &&
+    payload !== null &&
+    Array.isArray((payload as { items?: UnassignedAgent[] }).items)
+  ) {
+    return (payload as { items?: UnassignedAgent[] }).items ?? []
+  }
+  return []
+}
+
 const UserManagementPage = () => {
   const { token, user, isAuthenticated, isLoading } = useAuth()
   const [users, setUsers] = useState<UserOut[]>([])
@@ -218,7 +231,7 @@ const UserManagementPage = () => {
           setUnassignedAgents([])
           return
         }
-        let agents = response.data
+        let agents = normalizeUnassignedAgents(response.data)
 
         // If user has a currently assigned agent, add it to the list
         if (currentAgentId) {
