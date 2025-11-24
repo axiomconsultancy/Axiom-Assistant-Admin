@@ -8,7 +8,13 @@ import type { DataTableColumn, DataTableFilterControl } from '@/components/table
 import IconifyIcon from '@/components/wrapper/IconifyIcon'
 import { useAuth } from '@/context/useAuthContext'
 import { adminAgentApi } from '@/lib/admin-agent-api'
-import type { AdminAgent, AssignmentFilter, CreateAgentPayload } from '@/types/admin-agent'
+import type {
+  AdminAgent,
+  AssignmentFilter,
+  AudioFormatLiteral,
+  CreateAgentPayload,
+  TurnEagernessLiteral
+} from '@/types/admin-agent'
 import { toast } from 'react-toastify'
 
 const matchesSearch = (agent: AdminAgent, term: string) => {
@@ -59,9 +65,24 @@ const buildEditFormState = (agent: AdminAgent): EditFormState => ({
   speed: agent.conversation_config?.tts?.speed?.toString() || '',
   similarityBoost: agent.conversation_config?.tts?.similarity_boost?.toString() || '',
 
-  // Platform settings
-  recordCalls: agent.platform_settings?.record_calls || false,
-  debug: agent.platform_settings?.debug || false
+  // ASR config
+  asrQuality: agent.conversation_config?.asr?.quality || '',
+  asrProvider: agent.conversation_config?.asr?.provider || '',
+  asrInputFormat: agent.conversation_config?.asr?.user_input_audio_format || '',
+
+  // Turn config
+  turnTimeout: agent.conversation_config?.turn?.turn_timeout?.toString() || '',
+  turnInitialWaitTime: agent.conversation_config?.turn?.initial_wait_time?.toString() || '',
+  turnEagerness: agent.conversation_config?.turn?.turn_eagerness || '',
+  silenceEndCallTimeout: agent.conversation_config?.turn?.silence_end_call_timeout?.toString() || '',
+
+  // Conversation config
+  conversationTextOnly: agent.conversation_config?.conversation?.text_only ?? false,
+  conversationMaxDuration: agent.conversation_config?.conversation?.max_duration_seconds?.toString() || '',
+
+  // Workflow
+  workflowJson: agent.workflow ? JSON.stringify(agent.workflow, null, 2) : ''
+
 })
 
 type AgentActionMode = 'view' | 'edit'
@@ -86,9 +107,23 @@ type EditFormState = {
   speed: string
   similarityBoost: string
 
-  // Platform settings
-  recordCalls: boolean
-  debug: boolean
+  // ASR config
+  asrQuality: string
+  asrProvider: string
+  asrInputFormat: string
+
+  // Turn config
+  turnTimeout: string
+  turnInitialWaitTime: string
+  turnEagerness: string
+  silenceEndCallTimeout: string
+
+  // Conversation config
+  conversationTextOnly: boolean
+  conversationMaxDuration: string
+
+  // Workflow
+  workflowJson: string
 }
 
 const initialEditFormState: EditFormState = {
@@ -105,8 +140,16 @@ const initialEditFormState: EditFormState = {
   stability: '',
   speed: '',
   similarityBoost: '',
-  recordCalls: false,
-  debug: false
+  asrQuality: '',
+  asrProvider: '',
+  asrInputFormat: '',
+  turnTimeout: '',
+  turnInitialWaitTime: '',
+  turnEagerness: '',
+  silenceEndCallTimeout: '',
+  conversationTextOnly: false,
+  conversationMaxDuration: '',
+  workflowJson: ''
 }
 
 const AgentsPage = () => {
@@ -134,6 +177,17 @@ const AgentsPage = () => {
   const [editSubmitting, setEditSubmitting] = useState(false)
   const [deleteLoadingId, setDeleteLoadingId] = useState<string | null>(null)
   const [activeActionMode, setActiveActionMode] = useState<AgentActionMode | null>(null)
+
+  const audioFormats: AudioFormatLiteral[] = [
+    'pcm_8000',
+    'pcm_16000',
+    'pcm_22050',
+    'pcm_24000',
+    'pcm_44100',
+    'pcm_48000',
+    'ulaw_8000'
+  ]
+  const turnEagernessOptions: TurnEagernessLiteral[] = ['patient', 'normal', 'eager']
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearch(searchQuery.trim()), 400)
@@ -313,6 +367,16 @@ const AgentsPage = () => {
       return
     }
 
+    let workflowPayload: CreateAgentPayload['workflow']
+    if (editForm.workflowJson.trim()) {
+      try {
+        workflowPayload = JSON.parse(editForm.workflowJson)
+      } catch (err) {
+        toast.error('Workflow JSON is invalid. Please provide valid JSON before saving.')
+        return
+      }
+    }
+
     // Build tags array
     const tags = editForm.tags
       .split(',')
@@ -369,10 +433,55 @@ const AgentsPage = () => {
       conversationConfig.tts = ttsConfig
     }
 
-    // Build platform_settings
-    const platformSettings: Record<string, any> = {}
-    if (editForm.recordCalls) platformSettings.record_calls = true
-    if (editForm.debug) platformSettings.debug = true
+    // ASR config
+    const asrConfig: Record<string, any> = {}
+    if (editForm.asrQuality.trim()) asrConfig.quality = editForm.asrQuality.trim()
+    if (editForm.asrProvider.trim()) asrConfig.provider = editForm.asrProvider.trim()
+    if (editForm.asrInputFormat.trim()) {
+      asrConfig.user_input_audio_format = editForm.asrInputFormat as AudioFormatLiteral
+    }
+    if (Object.keys(asrConfig).length > 0) {
+      conversationConfig.asr = asrConfig
+    }
+
+    // Turn config
+    const turnConfig: Record<string, any> = {}
+    if (editForm.turnTimeout.trim()) {
+      const timeout = parseFloat(editForm.turnTimeout)
+      if (!isNaN(timeout)) turnConfig.turn_timeout = timeout
+    }
+    if (editForm.turnInitialWaitTime.trim()) {
+      const waitTime = parseFloat(editForm.turnInitialWaitTime)
+      if (!isNaN(waitTime)) turnConfig.initial_wait_time = waitTime
+    }
+    if (editForm.silenceEndCallTimeout.trim()) {
+      const silenceTimeout = parseFloat(editForm.silenceEndCallTimeout)
+      if (!isNaN(silenceTimeout)) turnConfig.silence_end_call_timeout = silenceTimeout
+    }
+    if (editForm.turnEagerness.trim()) {
+      turnConfig.turn_eagerness = editForm.turnEagerness as TurnEagernessLiteral
+    }
+    if (Object.keys(turnConfig).length > 0) {
+      conversationConfig.turn = turnConfig
+    }
+
+    // Conversation section
+    const conversationSection: Record<string, any> = {}
+    if (selectedAgent) {
+      const originalTextOnly = selectedAgent.conversation_config?.conversation?.text_only ?? false
+      if (editForm.conversationTextOnly !== originalTextOnly) {
+        conversationSection.text_only = editForm.conversationTextOnly
+      }
+    } else if (editForm.conversationTextOnly) {
+      conversationSection.text_only = true
+    }
+    if (editForm.conversationMaxDuration.trim()) {
+      const duration = parseInt(editForm.conversationMaxDuration, 10)
+      if (!isNaN(duration)) conversationSection.max_duration_seconds = duration
+    }
+    if (Object.keys(conversationSection).length > 0) {
+      conversationConfig.conversation = conversationSection
+    }
 
     // Build payload matching AgentUpdateRequest (all fields optional)
     const payload: Partial<CreateAgentPayload> = {}
@@ -381,8 +490,8 @@ const AgentsPage = () => {
     if (Object.keys(conversationConfig).length > 0) {
       payload.conversation_config = conversationConfig as CreateAgentPayload['conversation_config']
     }
-    if (Object.keys(platformSettings).length > 0) {
-      payload.platform_settings = platformSettings
+    if (workflowPayload) {
+      payload.workflow = workflowPayload
     }
 
     setEditSubmitting(true)
@@ -962,34 +1071,149 @@ const AgentsPage = () => {
                 </Form.Group>
               </Col>
 
-              {/* Platform Settings */}
+              {/* Speech Recognition */}
               <Col xs={12} className="mt-4">
-                <h6 className="mb-3 text-primary">Platform Settings</h6>
+                <h6 className="mb-3 text-primary">Speech Recognition</h6>
+              </Col>
+              <Col md={4}>
+                <Form.Group>
+                  <Form.Label>ASR Quality</Form.Label>
+                  <Form.Control
+                    value={editForm.asrQuality}
+                    onChange={handleEditInputChange('asrQuality')}
+                    placeholder="high"
+                  />
+                </Form.Group>
+              </Col>
+              <Col md={4}>
+                <Form.Group>
+                  <Form.Label>ASR Provider</Form.Label>
+                  <Form.Control
+                    value={editForm.asrProvider}
+                    onChange={handleEditInputChange('asrProvider')}
+                    placeholder="elevenlabs"
+                  />
+                </Form.Group>
+              </Col>
+              <Col md={4}>
+                <Form.Group>
+                  <Form.Label>Input Audio Format</Form.Label>
+                  <Form.Select value={editForm.asrInputFormat} onChange={handleEditInputChange('asrInputFormat')}>
+                    <option value="">Select format (optional)</option>
+                    {audioFormats.map((format) => (
+                      <option key={format} value={format}>
+                        {format}
+                      </option>
+                    ))}
+                  </Form.Select>
+                </Form.Group>
+              </Col>
+
+              {/* Turn Configuration */}
+              <Col xs={12} className="mt-4">
+                <h6 className="mb-3 text-primary">Turn Behavior</h6>
+              </Col>
+              <Col md={3}>
+                <Form.Group>
+                  <Form.Label>Turn Timeout (sec)</Form.Label>
+                  <Form.Control
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    value={editForm.turnTimeout}
+                    onChange={handleEditInputChange('turnTimeout')}
+                    placeholder="6"
+                  />
+                </Form.Group>
+              </Col>
+              <Col md={3}>
+                <Form.Group>
+                  <Form.Label>Initial Wait Time (sec)</Form.Label>
+                  <Form.Control
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    value={editForm.turnInitialWaitTime}
+                    onChange={handleEditInputChange('turnInitialWaitTime')}
+                    placeholder="0.8"
+                  />
+                </Form.Group>
+              </Col>
+              <Col md={3}>
+                <Form.Group>
+                  <Form.Label>Silence End Call Timeout</Form.Label>
+                  <Form.Control
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    value={editForm.silenceEndCallTimeout}
+                    onChange={handleEditInputChange('silenceEndCallTimeout')}
+                    placeholder="60"
+                  />
+                </Form.Group>
+              </Col>
+              <Col md={3}>
+                <Form.Group>
+                  <Form.Label>Turn Eagerness</Form.Label>
+                  <Form.Select value={editForm.turnEagerness} onChange={handleEditInputChange('turnEagerness')}>
+                    <option value="">Select eagerness</option>
+                    {turnEagernessOptions.map((option) => (
+                      <option key={option} value={option}>
+                        {option}
+                      </option>
+                    ))}
+                  </Form.Select>
+                </Form.Group>
+              </Col>
+
+              {/* Conversation Settings */}
+              <Col xs={12} className="mt-4">
+                <h6 className="mb-3 text-primary">Conversation Settings</h6>
               </Col>
               <Col md={6}>
                 <Form.Group>
                   <Form.Check
-                    type="checkbox"
-                    id="editRecordCalls"
-                    label="Record Calls"
-                    checked={editForm.recordCalls}
-                    onChange={handleEditInputChange('recordCalls')}
+                    type="switch"
+                    id="editConversationTextOnly"
+                    label="Text-only conversation"
+                    checked={editForm.conversationTextOnly}
+                    onChange={handleEditInputChange('conversationTextOnly')}
                   />
-                  <Form.Text className="text-muted">Enable call recording for this agent</Form.Text>
                 </Form.Group>
               </Col>
               <Col md={6}>
                 <Form.Group>
-                  <Form.Check
-                    type="checkbox"
-                    id="editDebug"
-                    label="Debug Mode"
-                    checked={editForm.debug}
-                    onChange={handleEditInputChange('debug')}
+                  <Form.Label>Max Duration (seconds)</Form.Label>
+                  <Form.Control
+                    type="number"
+                    min="0"
+                    value={editForm.conversationMaxDuration}
+                    onChange={handleEditInputChange('conversationMaxDuration')}
+                    placeholder="900"
                   />
-                  <Form.Text className="text-muted">Enable debug logging for this agent</Form.Text>
                 </Form.Group>
               </Col>
+
+              {/* Workflow */}
+              <Col xs={12} className="mt-4">
+                <h6 className="mb-3 text-primary">Workflow (Optional)</h6>
+              </Col>
+              <Col xs={12}>
+                <Form.Group>
+                  <Form.Label>Workflow JSON</Form.Label>
+                  <Form.Control
+                    as="textarea"
+                    rows={4}
+                    value={editForm.workflowJson}
+                    onChange={handleEditInputChange('workflowJson')}
+                    placeholder='e.g. {"nodes": [], "edges": []}'
+                  />
+                  <Form.Text className="text-muted">
+                    Provide JSON matching the AgentWorkflow schema. Leave blank to skip.
+                  </Form.Text>
+                </Form.Group>
+              </Col>
+
             </Row>
           </Modal.Body>
           <Modal.Footer>
