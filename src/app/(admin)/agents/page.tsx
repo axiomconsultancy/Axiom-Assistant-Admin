@@ -8,6 +8,7 @@ import type { DataTableColumn, DataTableFilterControl } from '@/components/table
 import IconifyIcon from '@/components/wrapper/IconifyIcon'
 import { useAuth } from '@/context/useAuthContext'
 import { adminAgentApi } from '@/lib/admin-agent-api'
+import VoiceSelector from '@/components/VoiceSelector'
 import type {
   AdminAgent,
   AssignmentFilter,
@@ -906,15 +907,16 @@ const AgentsPage = () => {
               </Col>
               <Col md={6}>
                 <Form.Group controlId="editAgentVoice">
-                  <Form.Label>Voice ID</Form.Label>
-                  <Form.Control
+                  <VoiceSelector
                     value={editForm.voiceId}
-                    onChange={handleEditInputChange('voiceId')}
-                    placeholder="voice_123"
+                    onChange={(voiceId) => {
+                      setEditForm((prev) => ({ ...prev, voiceId }))
+                      setEditFormErrors((prev) => ({ ...prev, voiceId: '' }))
+                    }}
+                    token={token}
                     isInvalid={!!editFormErrors.voiceId}
+                    errorMessage={editFormErrors.voiceId}
                   />
-                  <Form.Control.Feedback type="invalid">{editFormErrors.voiceId}</Form.Control.Feedback>
-                  <Form.Text className="text-muted">ElevenLabs voice identifier</Form.Text>
                 </Form.Group>
               </Col>
               <Col md={6}>
