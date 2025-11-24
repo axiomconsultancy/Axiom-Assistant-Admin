@@ -35,23 +35,8 @@ type AgentFormState = {
   speed: string
   similarityBoost: string
 
-  // ASR config
-  asrQuality: string
-  asrProvider: string
-  asrInputFormat: string
-
-  // Turn config
-  turnTimeout: string
-  turnInitialWaitTime: string
+  // Turn config - only eagerness is user-selectable
   turnEagerness: string
-  silenceEndCallTimeout: string
-
-  // Conversation config
-  conversationTextOnly: boolean
-  conversationMaxDuration: string
-
-  // Workflow
-  workflowJson: string
 }
 
 const initialFormState: AgentFormState = {
@@ -68,16 +53,7 @@ const initialFormState: AgentFormState = {
   stability: '',
   speed: '',
   similarityBoost: '',
-  asrQuality: '',
-  asrProvider: '',
-  asrInputFormat: '',
-  turnTimeout: '',
-  turnInitialWaitTime: '',
-  turnEagerness: '',
-  silenceEndCallTimeout: '',
-  conversationTextOnly: false,
-  conversationMaxDuration: '',
-  workflowJson: ''
+  turnEagerness: ''
 }
 
 const CreateAgentPage = () => {
@@ -87,15 +63,6 @@ const CreateAgentPage = () => {
   const [formErrors, setFormErrors] = useState<Record<string, string>>({})
   const [submitting, setSubmitting] = useState(false)
 
-  const audioFormats: AudioFormatLiteral[] = [
-    'pcm_8000',
-    'pcm_16000',
-    'pcm_22050',
-    'pcm_24000',
-    'pcm_44100',
-    'pcm_48000',
-    'ulaw_8000'
-  ]
   const turnEagernessOptions: TurnEagernessLiteral[] = ['patient', 'normal', 'eager']
 
   const handleInputChange = (field: keyof AgentFormState) => (
@@ -133,16 +100,6 @@ const CreateAgentPage = () => {
     if (!validateForm()) return
 
     setSubmitting(true)
-    let workflowPayload: CreateAgentPayload['workflow']
-    if (formData.workflowJson.trim()) {
-      try {
-        workflowPayload = JSON.parse(formData.workflowJson)
-      } catch (err) {
-        toast.error('Workflow JSON is invalid. Please provide valid JSON before submitting.')
-        setSubmitting(false)
-        return
-      }
-    }
 
     try {
       // Build tags array
@@ -178,57 +135,29 @@ const CreateAgentPage = () => {
         }
       }
 
-      const asrConfig = {
-        quality: formData.asrQuality.trim() || undefined,
-        provider: formData.asrProvider.trim() || undefined,
-        user_input_audio_format: formData.asrInputFormat
-          ? (formData.asrInputFormat as AudioFormatLiteral)
-          : undefined
-      }
-      if (asrConfig.quality || asrConfig.provider || asrConfig.user_input_audio_format) {
-        conversationConfig.asr = asrConfig
+      // Set ASR defaults
+      conversationConfig.asr = {
+        quality: 'high',
+        provider: 'elevenlabs',
+        user_input_audio_format: 'ulaw_8000' as AudioFormatLiteral
       }
 
-      const turnConfig: Record<string, number | string> = {}
-      if (formData.turnTimeout.trim()) {
-        const timeout = parseFloat(formData.turnTimeout)
-        if (!isNaN(timeout)) turnConfig.turn_timeout = timeout
-      }
-      if (formData.turnInitialWaitTime.trim()) {
-        const waitTime = parseFloat(formData.turnInitialWaitTime)
-        if (!isNaN(waitTime)) turnConfig.initial_wait_time = waitTime
-      }
-      if (formData.silenceEndCallTimeout.trim()) {
-        const silenceTimeout = parseFloat(formData.silenceEndCallTimeout)
-        if (!isNaN(silenceTimeout)) turnConfig.silence_end_call_timeout = silenceTimeout
+      // Set turn behavior defaults and user-selected eagerness
+      const turnConfig: Record<string, number | string> = {
+        turn_timeout: 5,
+        initial_wait_time: 3,
+        silence_end_call_timeout: 15
       }
       if (formData.turnEagerness) {
         turnConfig.turn_eagerness = formData.turnEagerness as TurnEagernessLiteral
       }
-      if (Object.keys(turnConfig).length > 0) {
-        conversationConfig.turn = turnConfig as CreateAgentPayload['conversation_config']['turn']
-      }
-
-      const conversationSection: Record<string, any> = {}
-      if (formData.conversationTextOnly) {
-        conversationSection.text_only = true
-      }
-      if (formData.conversationMaxDuration.trim()) {
-        const duration = parseInt(formData.conversationMaxDuration, 10)
-        if (!isNaN(duration)) {
-          conversationSection.max_duration_seconds = duration
-        }
-      }
-      if (Object.keys(conversationSection).length > 0) {
-        conversationConfig.conversation = conversationSection
-      }
+      conversationConfig.turn = turnConfig as CreateAgentPayload['conversation_config']['turn']
 
       // Build payload matching AgentCreateRequest
       const payload: CreateAgentPayload = {
         conversation_config: conversationConfig,
         name: formData.name.trim() || undefined,
-        tags: tags.length > 0 ? tags : undefined,
-        ...(workflowPayload ? { workflow: workflowPayload } : {})
+        tags: tags.length > 0 ? tags : undefined
       }
 
       const response = await adminAgentApi.createAgent(token, payload)
@@ -491,89 +420,11 @@ const CreateAgentPage = () => {
                     </Form.Group>
                   </Col>
 
-              {/* ASR Configuration */}
-              <Col xs={12} className="mt-4">
-                <h6 className="mb-3 text-primary">Speech Recognition</h6>
-              </Col>
-              <Col md={4}>
-                <Form.Group>
-                  <Form.Label>ASR Quality</Form.Label>
-                  <Form.Control
-                    value={formData.asrQuality}
-                    onChange={handleInputChange('asrQuality')}
-                    placeholder="high"
-                  />
-                  <Form.Text className="text-muted">Optional: e.g., high, medium</Form.Text>
-                </Form.Group>
-              </Col>
-              <Col md={4}>
-                <Form.Group>
-                  <Form.Label>ASR Provider</Form.Label>
-                  <Form.Control
-                    value={formData.asrProvider}
-                    onChange={handleInputChange('asrProvider')}
-                    placeholder="elevenlabs"
-                  />
-                </Form.Group>
-              </Col>
-              <Col md={4}>
-                <Form.Group>
-                  <Form.Label>Input Audio Format</Form.Label>
-                  <Form.Select value={formData.asrInputFormat} onChange={handleInputChange('asrInputFormat')}>
-                    <option value="">Select format (optional)</option>
-                    {audioFormats.map((format) => (
-                      <option key={format} value={format}>
-                        {format}
-                      </option>
-                    ))}
-                  </Form.Select>
-                </Form.Group>
-              </Col>
-
               {/* Turn Configuration */}
               <Col xs={12} className="mt-4">
                 <h6 className="mb-3 text-primary">Turn Behavior</h6>
               </Col>
-              <Col md={3}>
-                <Form.Group>
-                  <Form.Label>Turn Timeout (sec)</Form.Label>
-                  <Form.Control
-                    type="number"
-                    step="0.1"
-                    min="0"
-                    value={formData.turnTimeout}
-                    onChange={handleInputChange('turnTimeout')}
-                    placeholder="6"
-                  />
-                </Form.Group>
-              </Col>
-              <Col md={3}>
-                <Form.Group>
-                  <Form.Label>Initial Wait Time (sec)</Form.Label>
-                  <Form.Control
-                    type="number"
-                    step="0.1"
-                    min="0"
-                    value={formData.turnInitialWaitTime}
-                    onChange={handleInputChange('turnInitialWaitTime')}
-                    placeholder="0.8"
-                  />
-                </Form.Group>
-              </Col>
-              <Col md={3}>
-                <Form.Group>
-                  <Form.Label>Silence End Call Timeout (sec)</Form.Label>
-                  <Form.Control
-                    type="number"
-                    step="0.1"
-                    min="0"
-                    value={formData.silenceEndCallTimeout}
-                    onChange={handleInputChange('silenceEndCallTimeout')}
-                    placeholder="60"
-                  />
-                </Form.Group>
-              </Col>
-              <Col md={3}>
+              <Col md={12}>
                 <Form.Group>
                   <Form.Label>Turn Eagerness</Form.Label>
                   <Form.Select value={formData.turnEagerness} onChange={handleInputChange('turnEagerness')}>
@@ -584,54 +435,8 @@ const CreateAgentPage = () => {
                       </option>
                     ))}
                   </Form.Select>
-                </Form.Group>
-              </Col>
-
-              {/* Conversation Settings */}
-              <Col xs={12} className="mt-4">
-                <h6 className="mb-3 text-primary">Conversation Settings</h6>
-              </Col>
-              <Col md={6}>
-                <Form.Group>
-                  <Form.Check
-                    type="switch"
-                    id="conversationTextOnly"
-                    label="Text-only conversation"
-                    checked={formData.conversationTextOnly}
-                    onChange={handleInputChange('conversationTextOnly')}
-                  />
-                  <Form.Text className="text-muted">Disable audio streaming when enabled</Form.Text>
-                </Form.Group>
-              </Col>
-              <Col md={6}>
-                <Form.Group>
-                  <Form.Label>Max Duration (seconds)</Form.Label>
-                  <Form.Control
-                    type="number"
-                    min="0"
-                    value={formData.conversationMaxDuration}
-                    onChange={handleInputChange('conversationMaxDuration')}
-                    placeholder="900"
-                  />
-                </Form.Group>
-              </Col>
-
-              {/* Workflow */}
-              <Col xs={12} className="mt-4">
-                <h6 className="mb-3 text-primary">Workflow (Optional)</h6>
-              </Col>
-              <Col xs={12}>
-                <Form.Group>
-                  <Form.Label>Workflow JSON</Form.Label>
-                  <Form.Control
-                    as="textarea"
-                    rows={4}
-                    value={formData.workflowJson}
-                    onChange={handleInputChange('workflowJson')}
-                    placeholder='e.g. {"nodes": [], "edges": []}'
-                  />
                   <Form.Text className="text-muted">
-                    Paste a workflow definition that matches the backend schema. Leave blank to skip.
+                    Defaults: Turn timeout (5s), Initial wait time (3s), Silence end timeout (15s)
                   </Form.Text>
                 </Form.Group>
               </Col>
