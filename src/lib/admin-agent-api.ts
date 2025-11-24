@@ -4,7 +4,9 @@ import type {
   AdminAgent,
   CreateAgentPayload,
   AdminAgentListResponse,
-  AdminAgentQueryParams
+  AdminAgentQueryParams,
+  VoiceListResponse,
+  VoiceQueryParams
 } from '@/types/admin-agent'
 
 type UpdateAgentPayload = Partial<CreateAgentPayload> & Record<string, any>
@@ -43,5 +45,21 @@ export const adminAgentApi = {
   },
   async deleteAgent(token: string, agentId: string) {
     return apiClient.delete<void>(`/auth/admin/agents/${agentId}`, token)
+  },
+  async getVoices(token: string, params: VoiceQueryParams = {}) {
+    const queryParams = new URLSearchParams()
+
+    if (params.skip !== undefined) {
+      queryParams.append('skip', params.skip.toString())
+    }
+    if (params.limit !== undefined) {
+      queryParams.append('limit', params.limit.toString())
+    }
+    if (params.search) {
+      queryParams.append('search', params.search)
+    }
+
+    const endpoint = `/auth/admin/voices${queryParams.toString() ? `?${queryParams.toString()}` : ''}`
+    return apiClient.get<VoiceListResponse>(endpoint, token)
   }
 }
