@@ -108,9 +108,6 @@ const SignIn = () => {
                       />
                     </div>
                     <div className="mb-3">
-                      <Link href="/auth/reset-password" className="float-end text-muted ms-1">
-                        Forgot password?
-                      </Link>
                       <PasswordFormInput
                         control={control}
                         name="password"
@@ -120,11 +117,16 @@ const SignIn = () => {
                       />
                     </div>
 
-                    <div className="form-check mb-3">
-                      <input type="checkbox" className="form-check-input" id="remember-me" />
-                      <label className="form-check-label" htmlFor="remember-me">
-                        Remember me
-                      </label>
+                    <div className="d-flex justify-content-between align-items-center mb-3">
+                      <div className="form-check mb-0">
+                        <input type="checkbox" className="form-check-input" id="remember-me" />
+                        <label className="form-check-label" htmlFor="remember-me">
+                          Remember me
+                        </label>
+                      </div>
+                      <Link href="/auth/reset-password" className="text-muted ms-3">
+                        Forgot password?
+                      </Link>
                     </div>
                     <div className="d-grid">
                       <button
