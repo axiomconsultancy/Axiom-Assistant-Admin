@@ -75,6 +75,48 @@ export type TTSModelLiteral = 'eleven_turbo_v2' | 'eleven_flash_v2' | 'eleven_mu
 // Turn eagerness literals matching backend
 export type TurnEagernessLiteral = 'patient' | 'normal' | 'eager'
 
+// Language literals matching backend
+export type LanguageLiteral =
+  | 'en'
+  | 'es'
+  | 'fr'
+  | 'de'
+  | 'it'
+  | 'pt'
+  | 'ja'
+  | 'ko'
+  | 'zh'
+  | 'ar'
+  | 'hi'
+  | 'ru'
+  | 'nl'
+  | 'pl'
+  | 'sv'
+  | 'da'
+  | 'fi'
+  | 'no'
+  | 'cs'
+  | 'tr'
+  | 'el'
+  | 'he'
+  | 'id'
+  | 'ms'
+  | 'th'
+  | 'vi'
+
+// LLM model literals matching backend
+export type LLMModelLiteral =
+  | 'gpt-5'
+  | 'gpt-5.1'
+  | 'gpt-5-mini'
+  | 'gpt-5-nano'
+  | 'claude-haiku-4.5'
+  | 'claude-3-haiku'
+  | 'gemini-2.5-flash'
+  | 'gemini-2.5-flash-lite'
+  | 'gemini-2.0-flash'
+  | 'gemini-2.0-flash-lite'
+
 // Knowledge base entry
 export type AgentPromptKnowledgeBaseEntry = {
   id: string
