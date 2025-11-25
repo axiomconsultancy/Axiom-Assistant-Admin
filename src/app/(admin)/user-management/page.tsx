@@ -6,6 +6,7 @@ import {
   Button,
   Col,
   Form,
+  InputGroup,
   Modal,
   ModalBody,
   ModalFooter,
@@ -27,11 +28,12 @@ import type { AdminAgent, UnassignedAgent } from '@/types/admin-agent'
 
 type ModalMode = 'create' | 'edit' | 'assign-agent'
 
-const initialFormState: AdminUserCreatePayload = {
+type UserFormState = Pick<AdminUserCreatePayload, 'username' | 'email' | 'password'>
+
+const initialFormState: UserFormState = {
   username: '',
   email: '',
-  password: '',
-  agent_id: ''
+  password: ''
 }
 
 const normalizeAgentItems = (payload: unknown): AdminAgent[] => {
@@ -85,6 +87,7 @@ const UserManagementPage = () => {
   const [unassignedAgents, setUnassignedAgents] = useState<UnassignedAgent[]>([])
   const [agentsOptionsLoading, setAgentsOptionsLoading] = useState(false)
   const [allAgentsMap, setAllAgentsMap] = useState<Map<string, string>>(new Map())
+  const [showPassword, setShowPassword] = useState(false)
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearch(searchQuery.trim()), 400)
@@ -178,17 +181,18 @@ const UserManagementPage = () => {
     setEditingUserId(null)
     setAgentAssignmentUserId(null)
     setAgentIdInput('')
+    setShowPassword(false)
   }
 
   const handleOpenModal = (mode: ModalMode, selected?: UserOut) => {
     setModalMode(mode)
+    setShowPassword(false)
     if (mode === 'edit' && selected) {
       setEditingUserId(selected.id)
       setFormData({
         username: selected.username,
         email: selected.email,
-        password: '',
-        agent_id: selected.agent_id ?? ''
+        password: ''
       })
     } else {
       setEditingUserId(null)
@@ -270,8 +274,7 @@ const UserManagementPage = () => {
         const payload: AdminUserCreatePayload = {
           username: formData.username.trim(),
           email: formData.email.trim(),
-          password: formData.password,
-          agent_id: formData.agent_id?.trim() || undefined
+          password: formData.password
         }
         const response = await adminUserApi.createUser(token, payload)
         if (response.error) {
@@ -282,8 +285,7 @@ const UserManagementPage = () => {
       } else if (editingUserId) {
         const payload: AdminUserUpdatePayload = {
           username: formData.username.trim(),
-          email: formData.email.trim(),
-          agent_id: formData.agent_id?.trim() || null
+          email: formData.email.trim()
         }
         const response = await adminUserApi.updateUser(token, editingUserId, payload)
         if (response.error) {
@@ -312,8 +314,7 @@ const UserManagementPage = () => {
     setFormData({
       username: userRecord.username,
       email: userRecord.email,
-      password: '',
-      agent_id: userRecord.agent_id ?? ''
+      password: ''
     })
     setModalMode('edit')
     setShowModal(true)
@@ -698,7 +699,14 @@ const UserManagementPage = () => {
         </Col>
       </Row>
 
-      <Modal show={showModal} onHide={() => setShowModal(false)} onExited={resetForm} centered>
+      <Modal
+        show={showModal}
+        onHide={() => setShowModal(false)}
+        onExited={resetForm}
+        centered
+        size={modalMode === 'assign-agent' ? undefined : 'lg'}
+        contentClassName="border-0 shadow-lg"
+      >
         <Form onSubmit={handleFormSubmit}>
           <ModalHeader closeButton>
             <ModalTitle>
@@ -728,53 +736,90 @@ const UserManagementPage = () => {
                   </Form.Select>
                 )}
                 <Form.Text className="text-muted">
-                  Choose an available agent to assign, or select "No agent" to remove the current assignment.
+                  Choose an available agent to assign, or select &quot;No agent&quot; to remove the current assignment.
                 </Form.Text>
               </Form.Group>
             ) : (
               <>
-                <Form.Group className="mb-3">
-                  <Form.Label>Username</Form.Label>
-                  <Form.Control
-                    value={formData.username}
-                    onChange={(e) => setFormData((prev) => ({ ...prev, username: e.target.value }))}
-                    isInvalid={!!formErrors.username}
-                    placeholder="Enter username"
-                  />
-                  <Form.Control.Feedback type="invalid">{formErrors.username}</Form.Control.Feedback>
-                </Form.Group>
-                <Form.Group className="mb-3">
-                  <Form.Label>Email</Form.Label>
-                  <Form.Control
-                    type="email"
-                    value={formData.email}
-                    onChange={(e) => setFormData((prev) => ({ ...prev, email: e.target.value }))}
-                    isInvalid={!!formErrors.email}
-                    placeholder="work@example.com"
-                  />
-                  <Form.Control.Feedback type="invalid">{formErrors.email}</Form.Control.Feedback>
-                </Form.Group>
-                {modalMode === 'create' && (
-                  <Form.Group className="mb-3">
-                    <Form.Label>Temporary Password</Form.Label>
-                    <Form.Control
-                      type="password"
-                      value={formData.password}
-                      onChange={(e) => setFormData((prev) => ({ ...prev, password: e.target.value }))}
-                      isInvalid={!!formErrors.password}
-                      placeholder="Set an initial password"
-                    />
-                    <Form.Control.Feedback type="invalid">{formErrors.password}</Form.Control.Feedback>
-                  </Form.Group>
-                )}
-                <Form.Group className="mb-0">
-                  <Form.Label>Agent ID (optional)</Form.Label>
-                  <Form.Control
-                    value={formData.agent_id ?? ''}
-                    onChange={(e) => setFormData((prev) => ({ ...prev, agent_id: e.target.value }))}
-                    placeholder="Assign agent id"
-                  />
-                </Form.Group>
+                <div className="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-4">
+                  <Badge bg={modalMode === 'create' ? 'success' : 'primary'} className="text-uppercase fw-semibold">
+                    {modalMode === 'create' ? 'New Account' : 'Profile Update'}
+                  </Badge>
+                  <small className="text-muted">Fields marked * are required</small>
+                </div>
+                <Row className="g-3">
+                  <Col md={6}>
+                    <Form.Group>
+                      <Form.Label className="text-muted text-uppercase small fw-semibold">Username *</Form.Label>
+                      <Form.Control
+                        size="lg"
+                        className="shadow-sm"
+                        value={formData.username}
+                        onChange={(e) => setFormData((prev) => ({ ...prev, username: e.target.value }))}
+                        isInvalid={!!formErrors.username}
+                        placeholder="e.g. alex.miller"
+                      />
+                      <Form.Control.Feedback type="invalid">{formErrors.username}</Form.Control.Feedback>
+                      {/* <Form.Text className="text-muted">Visible to other admins and used in audit logs.</Form.Text> */}
+                    </Form.Group>
+                  </Col>
+                  <Col md={6}>
+                    <Form.Group>
+                      <Form.Label className="text-muted text-uppercase small fw-semibold">Email *</Form.Label>
+                      <InputGroup size="lg" className="shadow-sm" hasValidation>
+                        <InputGroup.Text>
+                          <IconifyIcon icon="solar:mailbox-linear" width={18} height={18} />
+                        </InputGroup.Text>
+                        <Form.Control
+                          type="email"
+                          value={formData.email}
+                          onChange={(e) => setFormData((prev) => ({ ...prev, email: e.target.value }))}
+                          isInvalid={!!formErrors.email}
+                          placeholder="work@example.com"
+                        />
+                      </InputGroup>
+                      <Form.Control.Feedback type="invalid">{formErrors.email}</Form.Control.Feedback>
+                      <Form.Text className="text-muted">
+                        We will send the verification email to this address immediately.
+                      </Form.Text>
+                    </Form.Group>
+                  </Col>
+                  {modalMode === 'create' && (
+                    <Col xs={12}>
+                      <Form.Group>
+                        <Form.Label className="text-muted text-uppercase small fw-semibold">
+                          Temporary Password *
+                        </Form.Label>
+                        <InputGroup size="lg" className="shadow-sm" hasValidation>
+                          <Form.Control
+                            type={showPassword ? 'text' : 'password'}
+                            value={formData.password}
+                            onChange={(e) => setFormData((prev) => ({ ...prev, password: e.target.value }))}
+                            isInvalid={!!formErrors.password}
+                            placeholder="Set an initial password"
+                          />
+                          <Button
+                            variant="outline-secondary"
+                            type="button"
+                            onClick={() => setShowPassword((prev) => !prev)}
+                          >
+                            <IconifyIcon
+                              icon={showPassword ? 'solar:eye-closed-line-duotone' : 'solar:eye-line-duotone'}
+                              width={18}
+                              height={18}
+                            />
+                          </Button>
+                          <Form.Control.Feedback type="invalid">
+                            {formErrors.password}
+                          </Form.Control.Feedback>
+                        </InputGroup>
+                        {/* <Form.Text className="text-muted">
+                          Share this once with the user—they will be prompted to change it on first login.
+                        </Form.Text> */}
+                      </Form.Group>
+                    </Col>
+                  )}
+                </Row>
               </>
             )}
           </ModalBody>
