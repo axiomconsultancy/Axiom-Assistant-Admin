@@ -163,29 +163,29 @@ function DataTable<T>({
     const widthFor = (key: string) => getWidth(columnLookup[key])
     if (side === 'left') {
       let offset = 0
-      for (const key of columnOrder) {
-        if (key === columnKey) break
+      // Iterate through visible columns in order
+      for (const column of visibleColumns) {
+        if (column.key === columnKey) break
         if (
-          columnVisibility[key] &&
-          stickyColumns[key] &&
-          (columnLookup[key]?.sticky ?? 'left') === 'left'
+          stickyColumns[column.key] &&
+          (column.sticky ?? 'left') === 'left'
         ) {
-          offset += widthFor(key)
+          offset += widthFor(column.key)
         }
       }
       return offset
     }
 
+    // For right-side sticky, iterate through visible columns in reverse order
     let offset = 0
-    for (let i = columnOrder.length - 1; i >= 0; i--) {
-      const key = columnOrder[i]
-      if (key === columnKey) break
+    for (let i = visibleColumns.length - 1; i >= 0; i--) {
+      const column = visibleColumns[i]
+      if (column.key === columnKey) break
       if (
-        columnVisibility[key] &&
-        stickyColumns[key] &&
-        (columnLookup[key]?.sticky ?? 'left') === 'right'
+        stickyColumns[column.key] &&
+        (column.sticky ?? 'left') === 'right'
       ) {
-        offset += widthFor(key)
+        offset += widthFor(column.key)
       }
     }
     return offset
