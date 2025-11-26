@@ -324,7 +324,7 @@ const CreateAgentPage = () => {
                         isInvalid={!!formErrors.prompt}
                       />
                       <Form.Control.Feedback type="invalid">{formErrors.prompt}</Form.Control.Feedback>
-                      <Form.Text className="text-muted">Required: Define the agent's behavior and personality</Form.Text>
+                      <Form.Text className="text-muted">Required: Define the agent&apos;s behavior and personality</Form.Text>
                     </Form.Group>
                   </Col>
                   <Col md={4}>

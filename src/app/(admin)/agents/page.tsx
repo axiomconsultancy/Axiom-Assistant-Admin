@@ -882,7 +882,7 @@ const AgentsPage = () => {
                     isInvalid={!!editFormErrors.prompt}
                   />
                   <Form.Control.Feedback type="invalid">{editFormErrors.prompt}</Form.Control.Feedback>
-                  <Form.Text className="text-muted">Define the agent's behavior and personality</Form.Text>
+                  <Form.Text className="text-muted">Define the agent&apos;s behavior and personality</Form.Text>
                 </Form.Group>
               </Col>
               <Col md={4}>
