@@ -292,7 +292,7 @@ const DocumentsPage = () => {
     setAttachSubmitting(true)
     try {
       const response = await knowledgeBaseApi.attachDocumentToAgent(token as string, attachAgentId, {
-        document_id: docId,
+        document_ids: [docId],
         usage_mode: 'auto'
       })
 

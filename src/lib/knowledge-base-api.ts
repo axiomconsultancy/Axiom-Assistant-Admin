@@ -7,7 +7,7 @@ import type {
 } from '@/types/knowledge-base'
 
 type AttachDocumentPayload = {
-  document_id: string
+  document_ids: string[]
   usage_mode?: string
 }
 
