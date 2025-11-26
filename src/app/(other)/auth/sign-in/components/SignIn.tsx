@@ -160,11 +160,6 @@ const SignIn = () => {
               Contact Sales
                 </Link>
               </p>
-              <p className="text-center mt-2">
-                <Link href="/auth/admin/sign-in" className="text-decoration-none text-white text-opacity-75">
-                  Admin Sign In →
-                </Link>
-              </p>
             </Col>
           </Row>
         </div>
