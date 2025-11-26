@@ -6,7 +6,7 @@ import SimplebarReactClient from '@/components/wrapper/SimplebarReactClient'
 import LogoBox from '@/components/wrapper/LogoBox'
 import { useAuth } from '@/context/useAuthContext'
 
-const page = () => {
+const Page = () => {
   const { user } = useAuth()
   const menuItems = getMenuItems(user?.role || null)
   return (
@@ -19,4 +19,4 @@ const page = () => {
   )
 }
 
-export default page
+export default Page
