@@ -260,11 +260,6 @@ const CouponManagementPage = () => {
     }
   }
 
-  const handlePlanSelection = (event: React.ChangeEvent<HTMLSelectElement>) => {
-    const selected = Array.from(event.target.selectedOptions).map((option) => option.value)
-    setFormState((prev) => ({ ...prev, appliesToPlanIds: selected }))
-  }
-
   const openCreateModal = () => {
     setFormMode('create')
     setFormState(DEFAULT_COUPON_FORM)
@@ -715,19 +710,72 @@ const CouponManagementPage = () => {
 
             <Form.Group className='mt-3'>
               <Form.Label>Applies to plans</Form.Label>
-              <Form.Select multiple value={formState.appliesToPlanIds} onChange={handlePlanSelection} disabled={planLoading || !plans.length}>
-                {plans.length === 0 && (
-                  <option value='' disabled>
-                    {planLoading ? 'Loading plans...' : 'No plans available'}
-                  </option>
-                )}
-                {plans.map((plan) => (
-                  <option key={plan.id} value={plan.id}>
-                    {plan.name}
-                  </option>
-                ))}
-              </Form.Select>
-              <Form.Text className='text-muted'>Empty list means the coupon applies to every plan.</Form.Text>
+              {planLoading ? (
+                <div className='text-muted small'>Loading plans...</div>
+              ) : plans.length === 0 ? (
+                <div className='text-muted small'>No plans available</div>
+              ) : (
+                <>
+                  <div
+                    className='border rounded p-3'
+                    style={{
+                      maxHeight: '200px',
+                      overflowY: 'auto',
+                      backgroundColor: 'var(--bs-body-bg, #fff)'
+                    }}
+                  >
+                    <div className='d-flex flex-column gap-2'>
+                      {plans.map((plan) => {
+                        const isChecked = formState.appliesToPlanIds.includes(plan.id)
+                        return (
+                          <Form.Check
+                            key={plan.id}
+                            type='checkbox'
+                            id={`plan-${plan.id}`}
+                            label={
+                              <div className='d-flex justify-content-between align-items-center w-100'>
+                                <span>{plan.name}</span>
+                                <Badge bg='secondary' className='text-uppercase' style={{ fontSize: '0.7rem' }}>
+                                  {plan.tier}
+                                </Badge>
+                              </div>
+                            }
+                            checked={isChecked}
+                            onChange={(e) => {
+                              const { checked } = e.target
+                              setFormState((prev) => ({
+                                ...prev,
+                                appliesToPlanIds: checked
+                                  ? [...prev.appliesToPlanIds, plan.id]
+                                  : prev.appliesToPlanIds.filter((id) => id !== plan.id)
+                              }))
+                            }}
+                          />
+                        )
+                      })}
+                    </div>
+                  </div>
+                  <div className='d-flex justify-content-between align-items-center mt-2'>
+                    <Form.Text className='text-muted mb-0'>
+                      {formState.appliesToPlanIds.length === 0
+                        ? 'Select plans to restrict coupon, or leave all unchecked to apply to every plan.'
+                        : `${formState.appliesToPlanIds.length} plan${formState.appliesToPlanIds.length !== 1 ? 's' : ''} selected`}
+                    </Form.Text>
+                    {formState.appliesToPlanIds.length > 0 && (
+                      <Button
+                        variant='link'
+                        size='sm'
+                        className='p-0 text-decoration-none'
+                        onClick={() => {
+                          setFormState((prev) => ({ ...prev, appliesToPlanIds: [] }))
+                        }}
+                      >
+                        Clear all
+                      </Button>
+                    )}
+                  </div>
+                </>
+              )}
             </Form.Group>
 
             <Form.Group className='mt-3'>
