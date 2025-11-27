@@ -284,17 +284,45 @@ const SubscriptionPlansPage = () => {
       return
     }
 
+    // Parse values safely, ensuring no NaN values
+    const price = parseFloat(formState.price)
+    const trialDays = parseInt(formState.trialDays, 10)
+
+    // Handle minuteAllocation - only include if it's a valid number (0 or positive)
+    let minuteAllocation: number | undefined = undefined
+    if (formState.minuteAllocation?.trim()) {
+      const parsed = parseInt(formState.minuteAllocation.trim(), 10)
+      if (!Number.isNaN(parsed) && parsed >= 0) {
+        minuteAllocation = parsed
+      }
+    }
+
+    // Validate parsed values before creating payload
+    if (Number.isNaN(price) || price <= 0) {
+      toast.error('Invalid price value.')
+      return
+    }
+    if (Number.isNaN(trialDays) || trialDays < 0) {
+      toast.error('Invalid trial days value.')
+      return
+    }
+    if (minuteAllocation !== undefined && minuteAllocation < 0) {
+      toast.error('Minute allocation cannot be negative.')
+      return
+    }
+
+    // Build payload with only defined values for optional fields
     const payload: SubscriptionPlanPayload = {
       name: formState.name.trim(),
       tier: formState.tier,
-      description: formState.description.trim() || undefined,
-      price: parseFloat(formState.price),
+      price: price,
       currency: 'USD',
       billingFrequency: formState.billingFrequency,
-      minuteAllocation: formState.minuteAllocation ? parseInt(formState.minuteAllocation, 10) : undefined,
-      features: formState.features,
+      features: formState.features || [],
       status: formState.status,
-      trialDays: parseInt(formState.trialDays, 10)
+      trialDays: trialDays,
+      ...(formState.description.trim() && { description: formState.description.trim() }),
+      ...(minuteAllocation !== undefined && { minuteAllocation })
     }
 
     setSubmitting(true)
