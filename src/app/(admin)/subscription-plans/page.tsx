@@ -414,23 +414,13 @@ const SubscriptionPlansPage = () => {
         )
       },
       {
-        key: 'features',
-        header: 'Key Features',
-        minWidth: 260,
+        key: 'billingFrequency',
+        header: 'Billing Cycle',
+        width: 140,
         render: (plan) => (
-          <div className="d-flex flex-wrap gap-2">
-            {(plan.features ?? []).slice(0, 3).map((feature) => (
-              <Badge key={feature} bg="light" text="dark" className="fw-normal">
-                {feature}
-              </Badge>
-            ))}
-            {plan.features && plan.features.length > 3 && (
-              <Badge bg="secondary" pill>
-                +{plan.features.length - 3} more
-              </Badge>
-            )}
-            {!plan.features?.length && <span className="text-muted small">—</span>}
-          </div>
+          <Badge bg="secondary" className="text-uppercase">
+            {plan.billingFrequency}
+          </Badge>
         )
       },
       {
