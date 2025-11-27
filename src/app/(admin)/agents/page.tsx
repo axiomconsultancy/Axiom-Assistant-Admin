@@ -1,12 +1,13 @@
 'use client'
 
-import React, { useCallback, useEffect, useMemo, useState } from 'react'
-import { Badge, Button, Col, Form, Modal, Row } from 'react-bootstrap'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { Badge, Button, Col, Form, Modal, Row, Spinner } from 'react-bootstrap'
 import Link from 'next/link'
 import { DataTable } from '@/components/table'
 import type { DataTableColumn, DataTableFilterControl } from '@/components/table'
 import IconifyIcon from '@/components/wrapper/IconifyIcon'
 import { useAuth } from '@/context/useAuthContext'
+import { useVoices } from '@/context/useVoicesContext'
 import { adminAgentApi } from '@/lib/admin-agent-api'
 import VoiceSelector from '@/components/VoiceSelector'
 import TagsInput from '@/components/TagsInput'
@@ -48,6 +49,10 @@ const matchesAssignment = (agent: AdminAgent, assignment: AssignmentFilter) => {
 }
 
 const getAgentIdentifier = (agent?: AdminAgent | null) => agent?.agent_id || agent?.id || ''
+const getAgentVoiceId = (agent?: AdminAgent | null) =>
+  agent?.conversation_config?.tts?.voice_id || agent?.tts?.voice_id || ''
+const getPrimaryLanguageCode = (agent?: AdminAgent | null) =>
+  agent?.default_language || agent?.conversation_config?.agent?.language || ''
 
 const buildEditFormState = (agent: AdminAgent): EditFormState => ({
   // Basic fields
@@ -119,6 +124,7 @@ const initialEditFormState: EditFormState = {
 
 const AgentsPage = () => {
   const { token, isAuthenticated, user, isLoading } = useAuth()
+  const { voices, isLoading: voicesLoading, fetchVoices, getVoiceById } = useVoices()
   const [agents, setAgents] = useState<AdminAgent[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -142,6 +148,8 @@ const AgentsPage = () => {
   const [editSubmitting, setEditSubmitting] = useState(false)
   const [deleteLoadingId, setDeleteLoadingId] = useState<string | null>(null)
   const [activeActionMode, setActiveActionMode] = useState<AgentActionMode | null>(null)
+  const [voicePreviewingId, setVoicePreviewingId] = useState<string | null>(null)
+  const voiceAudioRef = useRef<HTMLAudioElement | null>(null)
 
   const turnEagernessOptions: TurnEagernessLiteral[] = ['patient', 'normal', 'eager']
 
@@ -149,6 +157,34 @@ const AgentsPage = () => {
     'en', 'es', 'fr', 'de', 'it', 'pt', 'ja', 'ko', 'zh', 'ar', 'hi', 'ru',
     'nl', 'pl', 'sv', 'da', 'fi', 'no', 'cs', 'tr', 'el', 'he', 'id', 'ms', 'th', 'vi'
   ]
+const languageLabels: Record<string, string> = {
+  en: 'English',
+  es: 'Spanish',
+  fr: 'French',
+  de: 'German',
+  it: 'Italian',
+  pt: 'Portuguese',
+  ja: 'Japanese',
+  ko: 'Korean',
+  zh: 'Chinese',
+  ar: 'Arabic',
+  hi: 'Hindi',
+  ru: 'Russian',
+  nl: 'Dutch',
+  pl: 'Polish',
+  sv: 'Swedish',
+  da: 'Danish',
+  fi: 'Finnish',
+  no: 'Norwegian',
+  cs: 'Czech',
+  tr: 'Turkish',
+  el: 'Greek',
+  he: 'Hebrew',
+  id: 'Indonesian',
+  ms: 'Malay',
+  th: 'Thai',
+  vi: 'Vietnamese'
+}
 
   const llmModelOptions: LLMModelLiteral[] = [
     'gpt-5',
@@ -162,6 +198,17 @@ const AgentsPage = () => {
     'gemini-2.0-flash',
     'gemini-2.0-flash-lite'
   ]
+  const detailCardClass = 'border rounded-3 p-3 bg-body-tertiary h-100'
+  const selectedAgentIdentifier = getAgentIdentifier(selectedAgent)
+  const selectedAgentVoiceId = getAgentVoiceId(selectedAgent)
+  const selectedVoice = selectedAgentVoiceId ? getVoiceById(selectedAgentVoiceId) : undefined
+const selectedAgentPrimaryLanguage = getPrimaryLanguageCode(selectedAgent)
+const formatLanguageLabel = (code?: string) => {
+  if (!code) return '—'
+  const normalized = code.toLowerCase()
+  const label = languageLabels[normalized]
+  return label ? `${label} (${normalized.toUpperCase()})` : normalized.toUpperCase()
+}
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearch(searchQuery.trim()), 400)
@@ -171,6 +218,71 @@ const AgentsPage = () => {
   useEffect(() => {
     setCurrentPage(1)
   }, [debouncedSearch, assignmentFilter, pageSize])
+
+  useEffect(() => {
+    if (!token || !isAuthenticated || user?.role !== 'admin') return
+    if (voices.length === 0) {
+      fetchVoices(token)
+    }
+  }, [token, isAuthenticated, user?.role, fetchVoices, voices.length])
+
+  useEffect(() => {
+    if (!viewModalOpen || !token) return
+    const voiceId = selectedAgentVoiceId
+    if (!voiceId) return
+    if (!selectedVoice && !voicesLoading) {
+      fetchVoices(token, voiceId)
+    }
+  }, [viewModalOpen, token, selectedVoice, voicesLoading, selectedAgentVoiceId, fetchVoices])
+
+  const stopVoicePreview = useCallback(() => {
+    if (voiceAudioRef.current) {
+      voiceAudioRef.current.pause()
+      voiceAudioRef.current.currentTime = 0
+      voiceAudioRef.current = null
+    }
+    setVoicePreviewingId(null)
+  }, [])
+
+  const handleVoicePreview = useCallback(
+    (voiceId: string, previewUrl?: string) => {
+      if (!previewUrl) return
+      if (voicePreviewingId === voiceId) {
+        stopVoicePreview()
+        return
+      }
+      if (voiceAudioRef.current) {
+        voiceAudioRef.current.pause()
+      }
+      const audio = new Audio(previewUrl)
+      voiceAudioRef.current = audio
+      setVoicePreviewingId(voiceId)
+      audio
+        .play()
+        .catch(() => {
+          stopVoicePreview()
+        })
+      audio.onended = stopVoicePreview
+      audio.onerror = stopVoicePreview
+    },
+    [voicePreviewingId, stopVoicePreview]
+  )
+
+  useEffect(() => {
+    return () => {
+      stopVoicePreview()
+    }
+  }, [stopVoicePreview])
+
+  useEffect(() => {
+    if (!viewModalOpen) {
+      stopVoicePreview()
+    }
+  }, [viewModalOpen, stopVoicePreview])
+
+  useEffect(() => {
+    stopVoicePreview()
+  }, [selectedAgentIdentifier, stopVoicePreview])
 
   const fetchAgents = useCallback(async () => {
     if (!token || !isAuthenticated || user?.role !== 'admin') {
@@ -740,60 +852,108 @@ const AgentsPage = () => {
         </Modal.Header>
         <Modal.Body>
           {selectedAgent ? (
-            <div className="d-flex flex-column gap-3">
-              <div>
+            <div className="d-flex flex-column gap-4">
+              <div className="border rounded-3 p-3 bg-body-tertiary">
                 <p className="text-muted text-uppercase small mb-1">Agent Name</p>
                 <h5 className="mb-0">{selectedAgent.name || 'Unnamed Agent'}</h5>
+                <div className="text-muted small mt-1">
+                  Created{' '}
+                  {selectedAgent.created_at
+                    ? new Date(selectedAgent.created_at).toLocaleString()
+                    : '—'}
+                </div>
               </div>
               <Row className="g-3">
                 <Col md={6}>
-                  <p className="text-muted text-uppercase small mb-1">Agent ID</p>
-                  <div className="fw-semibold">{getAgentIdentifier(selectedAgent) || '—'}</div>
+                  <div className={detailCardClass}>
+                    <p className="text-muted text-uppercase small mb-1">Agent ID</p>
+                    <div className="fw-semibold">{selectedAgentIdentifier || '—'}</div>
+                  </div>
                 </Col>
                 <Col md={6}>
-                  <p className="text-muted text-uppercase small mb-1">Voice ID</p>
-                  <div>{selectedAgent.tts?.voice_id || '—'}</div>
+                  <div className={detailCardClass}>
+                    <p className="text-muted text-uppercase small mb-1">Model</p>
+                    <div>{selectedAgent.conversation_config?.agent?.prompt?.llm || '—'}</div>
+                  </div>
                 </Col>
                 <Col md={6}>
-                  <p className="text-muted text-uppercase small mb-1">Primary Language</p>
-                  <div>{selectedAgent.default_language || '—'}</div>
+                  <div className={detailCardClass}>
+                    <p className="text-muted text-uppercase small mb-1">Primary Language</p>
+                    <div className="fw-semibold">{formatLanguageLabel(selectedAgentPrimaryLanguage)}</div>
+                  </div>
                 </Col>
                 <Col md={6}>
-                  <p className="text-muted text-uppercase small mb-1">Model</p>
-                  <div>{selectedAgent.conversation_config?.agent?.prompt?.llm || '—'}</div>
-                </Col>
-                <Col md={12}>
-                  <p className="text-muted text-uppercase small mb-1">Additional Languages</p>
-                  {selectedAgent.additional_languages && selectedAgent.additional_languages.length > 0 ? (
-                    <div className="d-flex flex-wrap gap-2">
-                      {selectedAgent.additional_languages.map((lang) => (
-                        <Badge bg="secondary" key={`${getAgentIdentifier(selectedAgent)}-${lang}`} className="text-uppercase">
-                          {lang}
-                        </Badge>
-                      ))}
+                  <div className={detailCardClass}>
+                    <p className="text-muted text-uppercase small mb-1">Voice</p>
+                    <div className="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-2">
+                      <div>
+                        <div className="fw-semibold">{selectedVoice?.name || 'Voice unavailable'}</div>
+                        <div className="text-muted small">{selectedAgentVoiceId || '—'}</div>
+                      </div>
+                      <Button
+                        variant={voicePreviewingId === selectedAgentVoiceId ? 'outline-danger' : 'outline-primary'}
+                        size="sm"
+                        onClick={() => handleVoicePreview(selectedAgentVoiceId, selectedVoice?.preview_url)}
+                        disabled={!selectedVoice?.preview_url || !selectedAgentVoiceId}
+                        className="d-flex align-items-center gap-1"
+                      >
+                        <IconifyIcon
+                          icon={voicePreviewingId === selectedAgentVoiceId ? 'solar:stop-circle-outline' : 'solar:play-circle-outline'}
+                          width={18}
+                          height={18}
+                        />
+                        {voicePreviewingId === selectedAgentVoiceId ? 'Stop' : 'Listen'}
+                      </Button>
                     </div>
-                  ) : (
-                    <span className="text-muted">None</span>
-                  )}
+                    {!selectedVoice?.preview_url && (
+                      <div className="text-muted small mt-2">Preview not available for this voice.</div>
+                    )}
+                    {voicesLoading && (
+                      <div className="d-flex align-items-center gap-2 text-muted small mt-2">
+                        <Spinner size="sm" animation="border" />
+                        Loading voice preview...
+                      </div>
+                    )}
+                  </div>
                 </Col>
                 <Col md={12}>
-                  <p className="text-muted text-uppercase small mb-1">Assigned Users</p>
-                  {selectedAgent.assigned_users && selectedAgent.assigned_users.length > 0 ? (
-                    <div className="d-flex flex-wrap gap-2">
-                      {selectedAgent.assigned_users.map((username) => (
-                        <Badge bg="info" key={`${getAgentIdentifier(selectedAgent)}-${username}`}>
-                          {username}
-                        </Badge>
-                      ))}
+                  <div className={detailCardClass}>
+                    <p className="text-muted text-uppercase small mb-1">Additional Languages</p>
+                    {selectedAgent.additional_languages && selectedAgent.additional_languages.length > 0 ? (
+                      <div className="d-flex flex-wrap gap-2">
+                        {selectedAgent.additional_languages.map((lang) => (
+                          <Badge bg="secondary" key={`${selectedAgentIdentifier}-${lang}`} className="text-uppercase">
+                            {formatLanguageLabel(lang)}
+                          </Badge>
+                        ))}
+                      </div>
+                    ) : (
+                      <span className="text-muted">None</span>
+                    )}
+                  </div>
+                </Col>
+                <Col md={12}>
+                  <div className={detailCardClass}>
+                    <p className="text-muted text-uppercase small mb-1">Assigned Users</p>
+                    {selectedAgent.assigned_users && selectedAgent.assigned_users.length > 0 ? (
+                      <div className="d-flex flex-wrap gap-2">
+                        {selectedAgent.assigned_users.map((username) => (
+                          <Badge bg="info" key={`${selectedAgentIdentifier}-${username}`}>
+                            {username}
+                          </Badge>
+                        ))}
+                      </div>
+                    ) : (
+                      <span className="text-muted">No users assigned</span>
+                    )}
+                  </div>
+                </Col>
+                <Col md={12}>
+                  <div className={detailCardClass}>
+                    <p className="text-muted text-uppercase small mb-1">Prompt</p>
+                    <div className="bg-body-secondary rounded p-3" style={{ whiteSpace: 'pre-wrap' }}>
+                      {selectedAgent.conversation_config?.agent?.prompt?.prompt || '—'}
                     </div>
-                  ) : (
-                    <span className="text-muted">No users assigned</span>
-                  )}
-                </Col>
-                <Col md={12}>
-                  <p className="text-muted text-uppercase small mb-1">Prompt</p>
-                  <div className="bg-body-tertiary rounded p-3" style={{ whiteSpace: 'pre-wrap' }}>
-                    {selectedAgent.conversation_config?.agent?.prompt?.prompt || '—'}
                   </div>
                 </Col>
               </Row>
