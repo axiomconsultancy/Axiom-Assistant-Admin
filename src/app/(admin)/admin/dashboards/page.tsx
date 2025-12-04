@@ -1,11 +1,11 @@
 import Footer from '@/components/layout/Footer'
 import React from 'react'
-import Chart from './components/Chart'
-import User from './components/User'
+import Chart from '../../dashboards/components/Chart'
+import User from '../../dashboards/components/User'
 import Link from 'next/link'
 import IconifyIcon from '@/components/wrapper/IconifyIcon'
 import { Col, Row } from 'react-bootstrap'
-import Cards from './components/Cards'
+import Cards from '../../dashboards/components/Cards'
 import { Metadata } from 'next'
 
 export const metadata: Metadata = { title: 'Analytics' }
@@ -38,3 +38,6 @@ const page = () => {
 }
 
 export default page
+
+
+

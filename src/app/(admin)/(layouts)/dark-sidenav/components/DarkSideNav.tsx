@@ -8,7 +8,7 @@ const DarkSideNav = () => {
   const { changeMenu } = useLayoutContext()
   useEffect(() => {
     changeMenu.theme('dark')
-    route.push('/dashboards')
+    route.push('/admin/dashboards')
   }, [])
   return <></>
 }

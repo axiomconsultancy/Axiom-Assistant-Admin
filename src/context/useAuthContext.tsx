@@ -11,6 +11,8 @@ interface AuthContextType {
   token: string | null
   isLoading: boolean
   isAuthenticated: boolean
+  isSubscribedUser: boolean
+  requiresSubscription: boolean
   signIn: (data: SignInRequest, isAdmin?: boolean) => Promise<{ success: boolean; error?: string }>
   signUp: (data: SignUpRequest, isAdmin?: boolean) => Promise<{ success: boolean; error?: string; data?: SignupOTPRequestOut }>
   signOut: () => void
@@ -73,7 +75,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       // Redirect based on role
       if (tokenData.user.role === 'admin') {
-        router.push('/dashboards')
+        router.push('/admin/dashboards')
       } else {
         router.push('/dashboards')
       }
@@ -167,11 +169,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
+  const isAuthenticated = !!user && !!token && !authStorage.isTokenExpired()
+  const isSubscribedUser = !!user && user.role === 'user' && user.subscribed === true
+  const requiresSubscription = !!user && user.role === 'user' && user.subscribed !== true
+
   const value: AuthContextType = {
     user,
     token,
     isLoading,
-    isAuthenticated: !!user && !!token && !authStorage.isTokenExpired(),
+    isAuthenticated,
+    isSubscribedUser,
+    requiresSubscription,
     signIn,
     signUp,
     signOut,

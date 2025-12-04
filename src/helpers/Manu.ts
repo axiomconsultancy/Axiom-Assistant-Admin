@@ -19,7 +19,7 @@ export const getMenuItems = (userRole?: 'admin' | 'user' | null): MenuItemType[]
         key: 'dashboards',
         label: 'Dashboard',
         icon: 'solar:widget-2-outline',
-        url: '/dashboards',
+        url: '/admin/dashboards',
       },
       {
         key: 'agents',

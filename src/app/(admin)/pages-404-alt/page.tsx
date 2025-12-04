@@ -22,7 +22,7 @@ const page = () => {
                     missing in the digital wilderness.
                   </p>
                   <div className="text-center">
-                    <Link href="/dashboards" className="btn btn-success">
+                    <Link href="/admin/dashboards" className="btn btn-success">
                       Back to Home
                     </Link>
                   </div>
