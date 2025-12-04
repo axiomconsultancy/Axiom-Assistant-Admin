@@ -46,7 +46,9 @@
     "simplebar-core": "^1.2.6",
     "simplebar-react": "^3.2.6",
     "swiper": "^11.1.15",
-    "yup": "^1.4.0"
+    "yup": "^1.4.0",
+    "@stripe/stripe-js": "^4.8.0",
+    "@stripe/react-stripe-js": "^2.8.0"
   },
   "devDependencies": {
     "@iconify/react": "^5.0.2",

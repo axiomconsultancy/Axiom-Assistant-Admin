@@ -81,3 +81,26 @@ export type CouponListResponse = {
   total: number
 }
 
+// User subscription flow (Stripe) types
+
+export interface SubscribeRequest {
+  email: string
+  name: string
+  // Backend may support either tier_id or price_id depending on configuration
+  tier_id?: string
+  price_id?: string
+  coupon_code?: string
+  // Optional payment method reference (for advanced flows)
+  payment_method_id?: string
+}
+
+export interface SubscribeResponse {
+  status: string
+  client_secret?: string
+  stripe_customer_id?: string
+  stripe_subscription_id?: string
+  subscription_id?: string
+  message?: string
+}
+
+

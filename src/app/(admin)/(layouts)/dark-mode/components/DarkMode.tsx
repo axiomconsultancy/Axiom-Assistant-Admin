@@ -8,7 +8,7 @@ const DarkMode = () => {
   const { changeTheme } = useLayoutContext()
   useEffect(() => {
     changeTheme('dark')
-    route.push('/dashboards')
+    route.push('/admin/dashboards')
   }, [])
   return <></>
 }

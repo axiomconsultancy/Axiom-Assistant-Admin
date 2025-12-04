@@ -39,7 +39,7 @@ const AdminSignIn = () => {
 
     // Redirect if already authenticated
     if (isAuthenticated) {
-      router.push('/dashboards')
+      router.push('/admin/dashboards')
     }
 
     return () => {

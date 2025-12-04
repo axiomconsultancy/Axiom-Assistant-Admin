@@ -1,4 +1,18 @@
 // User types matching backend API response
+
+export type SubscriptionDetails = {
+  // These fields mirror the backend UserOut.subscription_details structure (see backend README)
+  plan_name?: string
+  plan_id?: string
+  price_id?: string
+  currency?: string
+  amount?: number
+  status?: string
+  current_period_start?: string
+  current_period_end?: string
+  cancel_at_period_end?: boolean
+}
+
 export type UserOut = {
   id: string
   username: string
@@ -7,6 +21,11 @@ export type UserOut = {
   agent_id: string | null
   created_at: string
   blocked: boolean
+  // Subscription-related fields from backend UserOut / TokenOut.user
+  subscribed?: boolean
+  stripe_customer_id?: string | null
+  stripe_subscription_id?: string | null
+  subscription_details?: SubscriptionDetails | null
 }
 
 export type TokenOut = {

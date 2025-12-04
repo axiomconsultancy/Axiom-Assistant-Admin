@@ -8,7 +8,7 @@ const HiddenSideNav = () => {
   const { changeMenu } = useLayoutContext()
   useEffect(() => {
     changeMenu.size('hidden')
-    route.push('/dashboards')
+    route.push('/admin/dashboards')
   }, [])
   return <></>
 }

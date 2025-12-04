@@ -8,7 +8,7 @@ const DarkTopNav = () => {
   const { changeTopbarTheme } = useLayoutContext()
   useEffect(() => {
     changeTopbarTheme('dark')
-    route.push('/dashboards')
+    route.push('/admin/dashboards')
   }, [])
   return <></>
 }
