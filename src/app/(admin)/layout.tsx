@@ -9,9 +9,13 @@ import AuthGuard from '@/lib/auth-guard'
 const TopNavigationBar = dynamic(() => import('@/components/layout/TopNavigationBar/page'))
 const VerticalNavigationBar = dynamic(() => import('@/components/layout/VerticalNavigationBar/page'))
 
-const AdminLayout = ({ children }: ChildrenType) => {
+
+const PlatformLayout = ({ children }: ChildrenType) => {
   return (
-    <AuthGuard signInPath="/auth/admin/sign-in">
+    <AuthGuard
+      actor="platform"
+      signInPath="/auth/admin/sign-in"
+    >
       <div className="wrapper">
         <Suspense>
           <TopNavigationBar />
@@ -26,4 +30,18 @@ const AdminLayout = ({ children }: ChildrenType) => {
   )
 }
 
-export default AdminLayout
+export default PlatformLayout
+
+
+// 'use client'
+
+// import AuthGuard from '@/lib/auth-guard'
+// import { ChildrenType } from '@/types/component-props'
+
+// export default function PlatformLayout({ children }: ChildrenType) {
+//   return (
+//     <AuthGuard actor="platform" signInPath="/auth/admin/sign-in">
+//       {children}
+//     </AuthGuard>
+//   )
+// }

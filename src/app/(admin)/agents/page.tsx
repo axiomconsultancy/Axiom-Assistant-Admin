@@ -782,7 +782,7 @@ const formatLanguageLabel = (code?: string) => {
         <Col xs={12}>
           <div className="page-title-box d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
             <div>
-              <h4 className="mb-0">Agents</h4>
+              <h4 className="mb-2">Agents</h4>
               <ol className="breadcrumb mb-0">
                 <li className="breadcrumb-item">
                   <Link href="/">Taplox</Link>
@@ -793,7 +793,7 @@ const formatLanguageLabel = (code?: string) => {
                 <li className="breadcrumb-item active">Agents</li>
               </ol>
             </div>
-            <Link href="/create-agent" className="btn btn-primary shadow-sm d-flex align-items-center gap-2">
+            <Link href="/agents/create" className="btn btn-primary shadow-sm d-flex align-items-center gap-2">
               <IconifyIcon icon="solar:add-square-outline" width={18} height={18} />
               Create Agent
             </Link>
@@ -801,7 +801,7 @@ const formatLanguageLabel = (code?: string) => {
         </Col>
       </Row>
 
-      <Row className="mt-4">
+      <Row className="">
         <Col xs={12}>
           <DataTable
             id="all-agents"
