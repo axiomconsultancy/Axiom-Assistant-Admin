@@ -3,6 +3,7 @@
 import React, { useCallback, useEffect, useMemo, useState, useRef } from 'react'
 import { Badge, Button, Col, Form, Modal, Row, Spinner, Card, Dropdown } from 'react-bootstrap'
 import Link from 'next/link'
+import { useSearchParams, useRouter } from 'next/navigation'
 import { DataTable } from '@/components/table'
 import type { DataTableColumn, DataTableFilterControl } from '@/components/table'
 import IconifyIcon from '@/components/wrapper/IconifyIcon'
@@ -132,6 +133,8 @@ const StatusDropdown = ({
 
 const ActionItemsPage = () => {
   const { token, user, isAuthenticated } = useAuth()
+  const searchParams = useSearchParams()
+  const router = useRouter()
 
   const [actionItems, setActionItems] = useState<ActionItem[]>([])
   const [loading, setLoading] = useState(false)
@@ -147,6 +150,7 @@ const ActionItemsPage = () => {
   const [statusFilter, setStatusFilter] = useState('all')
   const [urgencyFilter, setUrgencyFilter] = useState('all')
   const [assignedFilter, setAssignedFilter] = useState('all')
+  const [callIdFilter, setCallIdFilter] = useState<string | null>(null)
   const [showFilters, setShowFilters] = useState(true)
 
   const [currentPage, setCurrentPage] = useState(1)
@@ -230,6 +234,13 @@ const ActionItemsPage = () => {
   }, [fetchPendingUrgentCount])
 
   useEffect(() => {
+    const callIdParam = searchParams.get('call_id')
+    if (callIdParam) {
+      setCallIdFilter(callIdParam)
+    }
+  }, [searchParams])
+
+  useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearch(searchQuery.trim().toLowerCase()), 350)
     return () => clearTimeout(timer)
   }, [searchQuery])
@@ -258,6 +269,10 @@ const ActionItemsPage = () => {
         params.assigned_to_me = true
       } else if (assignedFilter !== 'all') {
         params.assigned_to_user_id = assignedFilter as any
+      }
+
+      if (callIdFilter) {
+        params.call_id = callIdFilter
       }
 
 
@@ -1251,7 +1266,21 @@ const ActionItemsPage = () => {
             </>
           )}
         </Modal.Body>
-        <Modal.Footer className="border-0">
+        <Modal.Footer className="border-0 justify-content-between">
+          <div className="d-flex gap-2">
+            {selectedItem?.call_id && (
+              <Link href={`/call-records?openCallId=${selectedItem.call_id}`} passHref legacyBehavior>
+                <Button
+                  variant="outline-info"
+                  style={{ borderRadius: '8px' }}
+                  className="d-flex align-items-center"
+                >
+                  <IconifyIcon icon="solar:phone-bold" width={18} height={18} className="me-2" />
+                  View Original Call
+                </Button>
+              </Link>
+            )}
+          </div>
           <Button variant="secondary" onClick={() => setViewModalOpen(false)} style={{ borderRadius: '8px' }}>
             Close
           </Button>

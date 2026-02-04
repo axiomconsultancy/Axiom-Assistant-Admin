@@ -31,6 +31,7 @@ export interface ActionItemsListParams {
   type_filter?: ActionItemType
   assigned_to_me?: boolean
   assigned_to_user_id?: string | null // ✅ NEW
+  call_id?: string
   sort?: 'newest' | 'oldest' | 'due_date'
 }
 

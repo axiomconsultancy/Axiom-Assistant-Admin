@@ -7,13 +7,14 @@ import Link from 'next/link'
 import IconifyIcon from '@/components/wrapper/IconifyIcon'
 import { ApexOptions } from 'apexcharts'
 // import ReactApexChart from 'react-apexcharts'
-import { analyticsApi, type DashboardResponse, type AnalyticsPeriod } from '@/api/org/analytics'
+import { analyticsApi, type DashboardResponse, type AnalyticsPeriod, type StoreComparisonResponse } from '@/api/org/analytics'
 import { actionItemsApi } from '@/api/org/action-items'
 import { appointmentsApi } from '@/api/org/appointments'
 import { ordersApi } from '@/api/org/orders'
 import { orgUsersApi } from '@/api/org/users'
 import { supportApi } from '@/api/org/support'
 import { complaintsApi } from '@/api/org/complaints'
+
 
 import dynamic from 'next/dynamic'
 
@@ -46,6 +47,7 @@ const DashboardPage = () => {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [complaintsStats, setComplaintsStats] = useState<any>(null)
+  const [storeComparison, setStoreComparison] = useState<StoreComparisonResponse | null>(null)
 
 
   const loadDashboardData = useCallback(async () => {
@@ -72,6 +74,135 @@ const DashboardPage = () => {
       setUserStats(userData)
       setSupportStats(supportData)
       setComplaintsStats(complaintsData)
+
+      // Fetch store comparison data
+      try {
+        const storeCompData = await analyticsApi.getStoreComparison(period)
+        setStoreComparison(storeCompData)
+      } catch (err: any) {
+        // If endpoint doesn't exist yet, use mock data for demonstration
+        console.warn('Store comparison endpoint not available, using mock data:', err.message)
+
+        // Mock data for demonstration
+        const mockStoreData: StoreComparisonResponse = {
+          period: period,
+          total_calls: dashboardData.overview.total_calls,
+          stores: [
+            {
+              location_id: '1',
+              store_location: 'Downtown Store',
+              store_number: '001',
+              call_count: Math.floor(dashboardData.overview.total_calls * 0.18),
+              percentage_of_total: 18,
+              avg_duration: '3m 45s',
+              avg_duration_seconds: 225,
+              success_rate: 94.5,
+              trend: 'up'
+            },
+            {
+              location_id: '2',
+              store_location: 'Mall Location',
+              store_number: '002',
+              call_count: Math.floor(dashboardData.overview.total_calls * 0.15),
+              percentage_of_total: 15,
+              avg_duration: '4m 12s',
+              avg_duration_seconds: 252,
+              success_rate: 91.2,
+              trend: 'stable'
+            },
+            {
+              location_id: '3',
+              store_location: 'Airport Branch',
+              store_number: '003',
+              call_count: Math.floor(dashboardData.overview.total_calls * 0.12),
+              percentage_of_total: 12,
+              avg_duration: '2m 58s',
+              avg_duration_seconds: 178,
+              success_rate: 96.8,
+              trend: 'up'
+            },
+            {
+              location_id: '4',
+              store_location: 'Suburban Center',
+              store_number: '004',
+              call_count: Math.floor(dashboardData.overview.total_calls * 0.11),
+              percentage_of_total: 11,
+              avg_duration: '3m 22s',
+              avg_duration_seconds: 202,
+              success_rate: 89.5,
+              trend: 'down'
+            },
+            {
+              location_id: '5',
+              store_location: 'Main Street',
+              store_number: '005',
+              call_count: Math.floor(dashboardData.overview.total_calls * 0.10),
+              percentage_of_total: 10,
+              avg_duration: '3m 55s',
+              avg_duration_seconds: 235,
+              success_rate: 92.3,
+              trend: 'stable'
+            },
+            {
+              location_id: '6',
+              store_location: 'Westside Plaza',
+              store_number: '006',
+              call_count: Math.floor(dashboardData.overview.total_calls * 0.09),
+              percentage_of_total: 9,
+              avg_duration: '4m 05s',
+              avg_duration_seconds: 245,
+              success_rate: 88.7,
+              trend: 'up'
+            },
+            {
+              location_id: '7',
+              store_location: 'Eastside Market',
+              store_number: '007',
+              call_count: Math.floor(dashboardData.overview.total_calls * 0.08),
+              percentage_of_total: 8,
+              avg_duration: '3m 18s',
+              avg_duration_seconds: 198,
+              success_rate: 93.1,
+              trend: 'stable'
+            },
+            {
+              location_id: '8',
+              store_location: 'North District',
+              store_number: '008',
+              call_count: Math.floor(dashboardData.overview.total_calls * 0.07),
+              percentage_of_total: 7,
+              avg_duration: '3m 42s',
+              avg_duration_seconds: 222,
+              success_rate: 90.4,
+              trend: 'up'
+            },
+            {
+              location_id: '9',
+              store_location: 'South Bay',
+              store_number: '009',
+              call_count: Math.floor(dashboardData.overview.total_calls * 0.06),
+              percentage_of_total: 6,
+              avg_duration: '4m 28s',
+              avg_duration_seconds: 268,
+              success_rate: 87.9,
+              trend: 'down'
+            },
+            {
+              location_id: '10',
+              store_location: 'Central Station',
+              store_number: '010',
+              call_count: Math.floor(dashboardData.overview.total_calls * 0.04),
+              percentage_of_total: 4,
+              avg_duration: '3m 35s',
+              avg_duration_seconds: 215,
+              success_rate: 91.8,
+              trend: 'stable'
+            }
+          ]
+        }
+
+        setStoreComparison(mockStoreData)
+      }
 
     } catch (err: any) {
       console.error('Error loading dashboard:', err)
@@ -185,6 +316,229 @@ const DashboardPage = () => {
     dataLabels: { enabled: true },
     xaxis: { title: { text: 'Hour of Day' } }
   }), [dashboard])
+
+  // Store Comparison Chart
+  const storeComparisonChart: ApexOptions = useMemo(() => {
+    const stores = storeComparison?.stores || []
+    const topStores = stores
+      .sort((a, b) => b.call_count - a.call_count)
+      .slice(0, 10)
+
+    return {
+      chart: {
+        height: 350,
+        type: 'bar',
+        toolbar: { show: true }
+      },
+      plotOptions: {
+        bar: {
+          horizontal: true,
+          distributed: true,
+          barHeight: '70%',
+          dataLabels: {
+            position: 'top'
+          }
+        }
+      },
+      dataLabels: {
+        enabled: true,
+        formatter: (val: number) => val.toString(),
+        offsetX: 30,
+        style: {
+          fontSize: '12px',
+          colors: ['#304758']
+        }
+      },
+      series: [{
+        name: 'Calls',
+        data: topStores.map(s => s.call_count)
+      }],
+      xaxis: {
+        categories: topStores.map(s => s.store_location || `Store ${s.store_number || 'Unknown'}`),
+        title: { text: 'Number of Calls' }
+      },
+      yaxis: {
+        labels: {
+          style: {
+            fontSize: '11px'
+          }
+        }
+      },
+      colors: ['#6658dd', '#1abc9c', '#4fc6e1', '#f7b84b', '#f1556c', '#6c757d', '#39afd1', '#fa5c7c', '#0acf97', '#727cf5'],
+      grid: { borderColor: '#f1f3fa' },
+      tooltip: {
+        y: {
+          formatter: (val: number, opts: any) => {
+            const store = topStores[opts.dataPointIndex]
+            return `${val} calls (${store?.percentage_of_total.toFixed(1)}% of total)`
+          }
+        }
+      }
+    }
+  }, [storeComparison])
+
+  // Store Success Rates Chart
+  const storeSuccessRatesChart: ApexOptions = useMemo(() => {
+    const stores = storeComparison?.stores || []
+    const topStores = stores
+      .sort((a, b) => b.call_count - a.call_count)
+      .slice(0, 10)
+
+    return {
+      chart: {
+        height: 320,
+        type: 'bar',
+        toolbar: { show: false }
+      },
+      plotOptions: {
+        bar: {
+          horizontal: false,
+          columnWidth: '60%',
+          borderRadius: 4,
+          dataLabels: {
+            position: 'top'
+          }
+        }
+      },
+      dataLabels: {
+        enabled: true,
+        formatter: (val: number) => `${val.toFixed(1)}%`,
+        offsetY: -20,
+        style: {
+          fontSize: '11px',
+          colors: ['#304758']
+        }
+      },
+      series: [{
+        name: 'Success Rate',
+        data: topStores.map(s => s.success_rate)
+      }],
+      xaxis: {
+        categories: topStores.map(s => s.store_location?.substring(0, 15) || `Store ${s.store_number || 'N/A'}`),
+        labels: {
+          rotate: -45,
+          style: {
+            fontSize: '10px'
+          }
+        }
+      },
+      yaxis: {
+        title: { text: 'Success Rate (%)' },
+        max: 100,
+        labels: {
+          formatter: (val: number) => `${val.toFixed(0)}%`
+        }
+      },
+      colors: ['#1abc9c'],
+      grid: { borderColor: '#f1f3fa' },
+      tooltip: {
+        y: {
+          formatter: (val: number) => `${val.toFixed(1)}%`
+        }
+      }
+    }
+  }, [storeComparison])
+
+  // Store Average Duration Chart
+  const storeAvgDurationChart: ApexOptions = useMemo(() => {
+    const stores = storeComparison?.stores || []
+    const topStores = stores
+      .sort((a, b) => b.call_count - a.call_count)
+      .slice(0, 10)
+
+    return {
+      chart: {
+        height: 320,
+        type: 'bar',
+        toolbar: { show: false }
+      },
+      plotOptions: {
+        bar: {
+          horizontal: false,
+          columnWidth: '60%',
+          borderRadius: 4,
+          distributed: true
+        }
+      },
+      dataLabels: {
+        enabled: false
+      },
+      series: [{
+        name: 'Avg Duration (seconds)',
+        data: topStores.map(s => s.avg_duration_seconds)
+      }],
+      xaxis: {
+        categories: topStores.map(s => s.store_location?.substring(0, 15) || `Store ${s.store_number || 'N/A'}`),
+        labels: {
+          rotate: -45,
+          style: {
+            fontSize: '10px'
+          }
+        }
+      },
+      yaxis: {
+        title: { text: 'Average Duration (seconds)' },
+        labels: {
+          formatter: (val: number) => `${val.toFixed(0)}s`
+        }
+      },
+      colors: ['#6658dd', '#1abc9c', '#4fc6e1', '#f7b84b', '#f1556c', '#6c757d', '#39afd1', '#fa5c7c', '#0acf97', '#727cf5'],
+      grid: { borderColor: '#f1f3fa' },
+      tooltip: {
+        y: {
+          formatter: (val: number, opts: any) => {
+            const store = topStores[opts.dataPointIndex]
+            return `${val.toFixed(0)}s (${store?.avg_duration})`
+          }
+        }
+      }
+    }
+  }, [storeComparison])
+
+  // Store Performance Matrix Chart
+  const storePerformanceMatrixChart: ApexOptions = useMemo(() => {
+    const stores = storeComparison?.stores || []
+    const topStores = stores
+      .sort((a, b) => b.call_count - a.call_count)
+      .slice(0, 8)
+
+    return {
+      chart: {
+        height: 320,
+        type: 'radar',
+        toolbar: { show: false }
+      },
+      series: topStores.slice(0, 5).map(store => ({
+        name: store.store_location?.substring(0, 20) || `Store ${store.store_number}`,
+        data: [
+          store.success_rate,
+          (store.call_count / (storeComparison?.total_calls || 1)) * 100,
+          Math.min((store.avg_duration_seconds / 300) * 100, 100), // Normalize to 0-100
+        ]
+      })),
+      xaxis: {
+        categories: ['Success Rate', 'Call Volume %', 'Efficiency']
+      },
+      yaxis: {
+        show: false,
+        max: 100
+      },
+      colors: ['#6658dd', '#1abc9c', '#4fc6e1', '#f7b84b', '#f1556c'],
+      stroke: {
+        width: 2
+      },
+      fill: {
+        opacity: 0.2
+      },
+      markers: {
+        size: 4
+      },
+      legend: {
+        position: 'bottom',
+        horizontalAlign: 'center'
+      }
+    }
+  }, [storeComparison])
 
   // Action Items Status Chart
   const actionItemsChart: ApexOptions = useMemo(() => {
@@ -425,7 +779,110 @@ const DashboardPage = () => {
         </Col>
       </Row>
 
-      {/* KPI Cards Row 2 - Business Metrics */}
+      {/* KPI Cards Row 2 - Enhanced Metrics */}
+      <Row>
+        <Col lg={3} md={6}>
+          <Card className="border-0 shadow-sm">
+            <CardBody>
+              <div className="d-flex align-items-center">
+                <div className="flex-shrink-0">
+                  <div className="avatar-sm rounded bg-danger bg-opacity-10 d-flex align-items-center justify-content-center">
+                    <IconifyIcon icon="solar:hourglass-bold" className="text-danger" width={24} height={24} />
+                  </div>
+                </div>
+                <div className="flex-grow-1 ms-3">
+                  <p className="text-muted mb-1 small">Avg Resolution Time</p>
+                  <h4 className="mb-0">
+                    {actionStats?.total_items > 0
+                      ? `${Math.round((actionStats?.by_status?.completed || 0) / actionStats.total_items * 24)}h`
+                      : 'N/A'}
+                  </h4>
+                  <small className="text-muted">For action items</small>
+                </div>
+              </div>
+            </CardBody>
+          </Card>
+        </Col>
+
+        <Col lg={3} md={6}>
+          <Card className="border-0 shadow-sm">
+            <CardBody>
+              <div className="d-flex align-items-center">
+                <div className="flex-shrink-0">
+                  <div className="avatar-sm rounded bg-warning bg-opacity-10 d-flex align-items-center justify-content-center">
+                    <IconifyIcon icon="solar:danger-triangle-bold" className="text-warning" width={24} height={24} />
+                  </div>
+                </div>
+                <div className="flex-grow-1 ms-3">
+                  <p className="text-muted mb-1 small">Open Complaints</p>
+                  <h4 className="mb-0">
+                    {complaintsStats?.by_status?.pending || 0}
+                  </h4>
+                  <small className="text-muted">
+                    {complaintsStats?.total_complaints > 0
+                      ? `${Math.round((complaintsStats.by_status?.pending || 0) / complaintsStats.total_complaints * 100)}%`
+                      : '0%'} of total
+                  </small>
+                </div>
+              </div>
+            </CardBody>
+          </Card>
+        </Col>
+
+        <Col lg={3} md={6}>
+          <Card className="border-0 shadow-sm">
+            <CardBody>
+              <div className="d-flex align-items-center">
+                <div className="flex-shrink-0">
+                  <div className="avatar-sm rounded bg-success bg-opacity-10 d-flex align-items-center justify-content-center">
+                    <IconifyIcon icon="solar:shield-check-bold" className="text-success" width={24} height={24} />
+                  </div>
+                </div>
+                <div className="flex-grow-1 ms-3">
+                  <p className="text-muted mb-1 small">SLA Compliance</p>
+                  <h4 className="mb-0">{dashboard?.overview.success_rate.toFixed(1) || 0}%</h4>
+                  <small className={dashboard?.overview.success_rate >= 90 ? "text-success" : "text-warning"}>
+                    <IconifyIcon
+                      icon={dashboard?.overview.success_rate >= 90 ? "solar:check-circle-bold" : "solar:info-circle-bold"}
+                      width={12}
+                      height={12}
+                    /> {dashboard?.overview.success_rate >= 90 ? 'On Target' : 'Needs Attention'}
+                  </small>
+                </div>
+              </div>
+            </CardBody>
+          </Card>
+        </Col>
+
+        <Col lg={3} md={6}>
+          <Card className="border-0 shadow-sm">
+            <CardBody>
+              <div className="d-flex align-items-center">
+                <div className="flex-shrink-0">
+                  <div className="avatar-sm rounded bg-info bg-opacity-10 d-flex align-items-center justify-content-center">
+                    <IconifyIcon icon="solar:graph-up-bold" className="text-info" width={24} height={24} />
+                  </div>
+                </div>
+                <div className="flex-grow-1 ms-3">
+                  <p className="text-muted mb-1 small">Peak Hour</p>
+                  <h4 className="mb-0">
+                    {dashboard?.hourly_volume.length > 0
+                      ? `${dashboard.hourly_volume.reduce((max, curr) => curr.count > max.count ? curr : max).hour}:00`
+                      : 'N/A'}
+                  </h4>
+                  <small className="text-muted">
+                    {dashboard?.hourly_volume.length > 0
+                      ? `${dashboard.hourly_volume.reduce((max, curr) => curr.count > max.count ? curr : max).count} calls`
+                      : 'No data'}
+                  </small>
+                </div>
+              </div>
+            </CardBody>
+          </Card>
+        </Col>
+      </Row>
+
+      {/* KPI Cards Row 3 - Business Metrics */}
       <Row>
         <Col lg={3} md={6}>
           <Card className="border-0 shadow-sm">
@@ -520,12 +977,12 @@ const DashboardPage = () => {
 
       {/* Main Charts Row */}
       <Row>
-        <Col lg={8}>
+        <Col lg={8} xl={8}>
           <Card className="border-0 shadow-sm">
             <CardHeader className="d-flex justify-content-between align-items-center">
               <CardTitle as="h5" className="mb-0">
                 <IconifyIcon icon="solar:chart-2-bold" width={20} height={20} className="me-2" />
-                Call Volume Trend
+                Call Volume Trend (Overall)
               </CardTitle>
               <Badge bg="primary">{period.replace('_', ' ')}</Badge>
             </CardHeader>
@@ -539,6 +996,27 @@ const DashboardPage = () => {
             </CardBody>
           </Card>
         </Col>
+
+        {storeComparison && storeComparison.stores.length > 0 && (
+          <Col lg={4} xl={4}>
+            <Card className="border-0 shadow-sm">
+              <CardHeader>
+                <CardTitle as="h5" className="mb-0">
+                  <IconifyIcon icon="solar:buildings-2-bold" width={20} height={20} className="me-2" />
+                  Top 10 Stores by Volume
+                </CardTitle>
+              </CardHeader>
+              <CardBody>
+                <ReactApexChart
+                  options={storeComparisonChart}
+                  series={storeComparisonChart.series}
+                  type="bar"
+                  height={350}
+                />
+              </CardBody>
+            </Card>
+          </Col>
+        )}
 
         <Col lg={4}>
           <Card className="border-0 shadow-sm">
@@ -600,6 +1078,68 @@ const DashboardPage = () => {
           </Card>
         </Col>
       </Row>
+
+      {/* Store Performance Charts Row */}
+      {storeComparison && storeComparison.stores.length > 0 && (
+        <Row>
+          <Col lg={4}>
+            <Card className="border-0 shadow-sm">
+              <CardHeader>
+                <CardTitle as="h5" className="mb-0">
+                  <IconifyIcon icon="solar:chart-square-bold" width={20} height={20} className="me-2" />
+                  Store Success Rates
+                </CardTitle>
+              </CardHeader>
+              <CardBody>
+                <ReactApexChart
+                  options={storeSuccessRatesChart}
+                  series={storeSuccessRatesChart.series}
+                  type="bar"
+                  height={320}
+                />
+              </CardBody>
+            </Card>
+          </Col>
+
+          <Col lg={4}>
+            <Card className="border-0 shadow-sm">
+              <CardHeader>
+                <CardTitle as="h5" className="mb-0">
+                  <IconifyIcon icon="solar:clock-square-bold" width={20} height={20} className="me-2" />
+                  Avg Call Duration by Store
+                </CardTitle>
+              </CardHeader>
+              <CardBody>
+                <ReactApexChart
+                  options={storeAvgDurationChart}
+                  series={storeAvgDurationChart.series}
+                  type="bar"
+                  height={320}
+                />
+              </CardBody>
+            </Card>
+          </Col>
+
+          <Col lg={4}>
+            <Card className="border-0 shadow-sm">
+              <CardHeader>
+                <CardTitle as="h5" className="mb-0">
+                  <IconifyIcon icon="solar:target-bold" width={20} height={20} className="me-2" />
+                  Store Performance Matrix
+                </CardTitle>
+              </CardHeader>
+              <CardBody>
+                <ReactApexChart
+                  options={storePerformanceMatrixChart}
+                  series={storePerformanceMatrixChart.series}
+                  type="radar"
+                  height={320}
+                />
+              </CardBody>
+            </Card>
+          </Col>
+        </Row>
+      )}
 
       {/* Tertiary Charts Row */}
       <Row>

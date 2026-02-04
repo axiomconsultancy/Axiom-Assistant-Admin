@@ -215,6 +215,7 @@ const ComplaintsPage = () => {
   const [statusFilter, setStatusFilter] = useState<'all' | ComplaintStatus>('all')
   const [severityFilter, setSeverityFilter] = useState<'all' | ComplaintSeverity>('all')
   const [selectedLocationIds, setSelectedLocationIds] = useState<string[]>([])
+  const [callLogIdFilter, setCallLogIdFilter] = useState<string | null>(null)
   const [showFilters, setShowFilters] = useState(true)
 
   const [currentPage, setCurrentPage] = useState(1)
@@ -245,6 +246,11 @@ const ComplaintsPage = () => {
       if (validStatuses.includes(statusParam as ComplaintStatus)) {
         setStatusFilter(statusParam as ComplaintStatus)
       }
+    }
+
+    const callLogIdParam = searchParams.get('call_log_id')
+    if (callLogIdParam) {
+      setCallLogIdFilter(callLogIdParam)
     }
   }, [searchParams])
 
@@ -393,6 +399,10 @@ const ComplaintsPage = () => {
         params.location_ids = selectedLocationIds
       }
 
+      if (callLogIdFilter) {
+        params.call_log_id = callLogIdFilter
+      }
+
       const response = await complaintsApi.list(params)
 
       setComplaints(response.complaints)
@@ -410,10 +420,21 @@ const ComplaintsPage = () => {
     fetchComplaints()
   }, [fetchComplaints])
 
+  useEffect(() => {
+    if (!loading && callLogIdFilter && complaints.length > 0) {
+      // Auto-open if we're filtering by call_log_id
+      const matchingComplaint = complaints.find(c => c.call_log_id === callLogIdFilter)
+      if (matchingComplaint) {
+        setSelectedComplaint(matchingComplaint)
+        setShowDetailModal(true)
+      }
+    }
+  }, [complaints, loading, callLogIdFilter])
+
   // useRealtimeRefresh(fetchComplaints)
-    useRealtimeRefresh(fetchComplaints, ['call_logs_refresh'])
-  
-  
+  useRealtimeRefresh(fetchComplaints, ['call_logs_refresh'])
+
+
 
   const fetchAndUpdateBadgeCounts = useCallback(async () => {
     if (!token || !isAuthenticated) return
@@ -1324,40 +1345,36 @@ const ComplaintsPage = () => {
                 </Card.Body>
               </Card>
 
-              {/* Call Log Link Button */}
-              <Card className="mt-3 border-primary shadow-sm">
-                <Card.Body className="d-flex justify-content-between align-items-center py-3">
-                  <div>
-                    <h6 className="mb-1 d-flex align-items-center gap-2">
-                      <IconifyIcon icon="solar:phone-calling-bold" width={20} height={20} className="text-primary" />
-                      Related Call Recording
-                    </h6>
-                    <small className="text-muted">Listen to the original call that generated this complaint</small>
-                  </div>
-                  <Button
-                    variant="primary"
-                    onClick={() => handleViewCallLog(selectedComplaint.call_log_id)}
-                    disabled={loadingCallLog}
-                    style={{ borderRadius: '8px' }}
-                  >
-                    {loadingCallLog ? (
-                      <>
-                        <Spinner size="sm" className="me-2" />
-                        Loading...
-                      </>
-                    ) : (
-                      <>
-                        <IconifyIcon icon="solar:eye-bold" width={18} height={18} className="me-2" />
-                        View Call Details
-                      </>
-                    )}
-                  </Button>
-                </Card.Body>
-              </Card>
             </>
           )}
         </Modal.Body>
-        <Modal.Footer className="border-0">
+        <Modal.Footer className="border-0 justify-content-between">
+          <div className="d-flex gap-2">
+            {selectedComplaint && (
+              <>
+                <Link href={`/call-records?openCallId=${selectedComplaint.call_log_id}`} passHref legacyBehavior>
+                  <Button
+                    variant="outline-info"
+                    style={{ borderRadius: '8px' }}
+                    className="d-flex align-items-center"
+                  >
+                    <IconifyIcon icon="solar:phone-bold" width={18} height={18} className="me-2" />
+                    View Original Call
+                  </Button>
+                </Link>
+                <Link href={`/action-items?call_id=${selectedComplaint.call_log_id}`} passHref legacyBehavior>
+                  <Button
+                    variant="outline-info"
+                    style={{ borderRadius: '8px' }}
+                    className="d-flex align-items-center"
+                  >
+                    <IconifyIcon icon="solar:checklist-bold" width={18} height={18} className="me-2" />
+                    View Action Items
+                  </Button>
+                </Link>
+              </>
+            )}
+          </div>
           <Button variant="secondary" onClick={() => setShowDetailModal(false)} style={{ borderRadius: '8px' }}>
             Close
           </Button>

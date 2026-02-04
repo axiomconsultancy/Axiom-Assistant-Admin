@@ -10,7 +10,7 @@ import { ApexOptions } from 'apexcharts'
 import IconifyIcon from '@/components/wrapper/IconifyIcon'
 import { useAuth } from '@/context/useAuthContext'
 import { toast } from 'react-toastify'
-import { usageApi, type UsageOverviewResponse } from '@/api/org/usage'
+import { usageApi, type UsageOverviewResponse, type MobileStoresResponse } from '@/api/org/usage'
 import { useFeatureGuard } from '@/hooks/useFeatureGuard'
 import dynamic from 'next/dynamic'
 
@@ -24,26 +24,32 @@ const UsageAndBillingPage = () => {
   const isAdmin = Boolean(isAuthenticated && user?.role === 'admin')
 
   const [usageData, setUsageData] = useState<UsageOverviewResponse | null>(null)
+  const [mobileStoresData, setMobileStoresData] = useState<MobileStoresResponse | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const [billingModalOpen, setBillingModalOpen] = useState(false)
   const [upgradeModalOpen, setUpgradeModalOpen] = useState(false)
+  const [selectedStoreId, setSelectedStoreId] = useState<string | undefined>(undefined)
 
   const fetchUsageData = useCallback(async () => {
     if (!token || !isAuthenticated) return
     setLoading(true)
     setError(null)
     try {
-      const response = await usageApi.getOverview()
-      setUsageData(response)
+      const [usageResponse, mobileStoresResponse] = await Promise.all([
+        usageApi.getOverview(selectedStoreId),
+        usageApi.getMobileStores()
+      ])
+      setUsageData(usageResponse)
+      setMobileStoresData(mobileStoresResponse)
     } catch (err: any) {
       setError(err?.response?.data?.detail || err?.message || 'Unable to load usage data.')
       toast.error('Failed to load usage data')
     } finally {
       setLoading(false)
     }
-  }, [token, isAuthenticated])
+  }, [token, isAuthenticated, selectedStoreId])
 
   useEffect(() => {
     fetchUsageData()
@@ -197,14 +203,16 @@ const UsageAndBillingPage = () => {
                 <li className="breadcrumb-item active">Usage & Billing</li>
               </ol>
             </div>
-            <Button
-              variant="primary"
-              onClick={() => setUpgradeModalOpen(true)}
-              className="d-inline-flex align-items-center gap-2"
-            >
-              <IconifyIcon icon="solar:rocket-linear" width={18} height={18} />
-              Upgrade Plan
-            </Button>
+            <div className="d-flex align-items-center gap-3 ms-md-auto">
+              <Button
+                variant="primary"
+                onClick={() => setUpgradeModalOpen(true)}
+                className="d-inline-flex align-items-center gap-2"
+              >
+                <IconifyIcon icon="solar:rocket-linear" width={18} height={18} />
+                Upgrade Plan
+              </Button>
+            </div>
           </div>
         </Col>
       </Row>
@@ -224,6 +232,55 @@ const UsageAndBillingPage = () => {
           </Col>
         ))}
       </Row>
+
+      {/* Mobile Stores Overview */}
+      {mobileStoresData && mobileStoresData.summary.total_mobile_stores > 0 && (
+        <Row className="mb-3">
+          <Col xs={12}>
+            <Card className="border-0 shadow-sm">
+              <CardBody>
+                <div className="d-flex align-items-center justify-content-between mb-3">
+                  <h5 className="mb-0 d-flex align-items-center gap-2">
+                    <IconifyIcon icon="solar:shop-2-linear" width={24} height={24} className="text-primary" />
+                    Mobile Stores Overview
+                  </h5>
+                  <Badge bg="primary">{mobileStoresData.summary.total_mobile_stores} Total Stores</Badge>
+                </div>
+                <Row className="g-3">
+                  <Col md={6} lg={3}>
+                    <div className="text-center p-3 bg-light rounded">
+                      <IconifyIcon icon="solar:check-circle-bold" width={32} height={32} className="text-success mb-2" />
+                      <h4 className="mb-1">{mobileStoresData.summary.active_stores}</h4>
+                      <small className="text-muted">Active Stores</small>
+                    </div>
+                  </Col>
+                  <Col md={6} lg={3}>
+                    <div className="text-center p-3 bg-light rounded">
+                      <IconifyIcon icon="solar:phone-calling-rounded-bold" width={32} height={32} className="text-info mb-2" />
+                      <h4 className="mb-1">{mobileStoresData.summary.total_calls.toLocaleString()}</h4>
+                      <small className="text-muted">Total Calls</small>
+                    </div>
+                  </Col>
+                  <Col md={6} lg={3}>
+                    <div className="text-center p-3 bg-light rounded">
+                      <IconifyIcon icon="solar:clock-circle-bold" width={32} height={32} className="text-warning mb-2" />
+                      <h4 className="mb-1">{mobileStoresData.summary.total_minutes.toLocaleString()}</h4>
+                      <small className="text-muted">Total Minutes</small>
+                    </div>
+                  </Col>
+                  <Col md={6} lg={3}>
+                    <div className="text-center p-3 bg-light rounded">
+                      <IconifyIcon icon="solar:dollar-minimalistic-bold" width={32} height={32} className="text-success mb-2" />
+                      <h4 className="mb-1">${mobileStoresData.summary.total_cost_estimate.toFixed(2)}</h4>
+                      <small className="text-muted">Estimated Cost</small>
+                    </div>
+                  </Col>
+                </Row>
+              </CardBody>
+            </Card>
+          </Col>
+        </Row>
+      )}
 
       <Row>
         <Col md={6} lg={3} className="mb-3">
@@ -419,6 +476,115 @@ const UsageAndBillingPage = () => {
           </Card>
         </Col>
       </Row>
+
+      {/* Store-Wise Usage Section */}
+      {mobileStoresData && mobileStoresData.stores.length > 0 && (
+        <Row>
+          <Col xs={12}>
+            <Card className="border-0 shadow-sm">
+              <CardHeader className="d-flex justify-content-between align-items-center">
+                <CardTitle as="h5" className="mb-0">
+                  <IconifyIcon icon="solar:shop-2-bold" width={20} height={20} className="me-2" />
+                  Store-Wise Usage
+                </CardTitle>
+                <div className="d-flex align-items-center gap-2">
+                  <label className="mb-0 text-muted small">View:</label>
+                  <select
+                    className="form-select form-select-sm"
+                    style={{ width: 'auto' }}
+                    value={selectedStoreId || ''}
+                    onChange={(e) => setSelectedStoreId(e.target.value || undefined)}
+                  >
+                    <option value="">All Stores</option>
+                    {mobileStoresData.stores.map((store) => (
+                      <option key={store.location_id} value={store.location_id}>
+                        {store.store_number ? `#${store.store_number} - ` : ''}{store.store_location}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </CardHeader>
+              <CardBody>
+                <div className="table-responsive">
+                  <table className="table table-hover table-centered mb-0">
+                    <thead className="table-light">
+                      <tr>
+                        <th>Store #</th>
+                        <th>Location</th>
+                        <th>Email</th>
+                        <th className="text-end">Calls</th>
+                        <th className="text-end">Minutes</th>
+                        <th className="text-end">Est. Cost</th>
+                        <th>Last Call</th>
+                        <th className="text-center">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {mobileStoresData.stores.map((store) => (
+                        <tr
+                          key={store.location_id}
+                          onClick={() => setSelectedStoreId(store.location_id)}
+                          style={{ cursor: 'pointer' }}
+                          className={selectedStoreId === store.location_id ? 'table-active' : ''}
+                        >
+                          <td>
+                            <span className="fw-medium">{store.store_number || '—'}</span>
+                          </td>
+                          <td>
+                            <div className="d-flex align-items-center gap-2">
+                              <IconifyIcon icon="solar:map-point-linear" width={16} height={16} className="text-muted" />
+                              {store.store_location}
+                            </div>
+                          </td>
+                          <td>
+                            <small className="text-muted">{store.mobile_account_email}</small>
+                          </td>
+                          <td className="text-end">
+                            <span className="fw-semibold">{store.calls_made.toLocaleString()}</span>
+                          </td>
+                          <td className="text-end">
+                            <span className="fw-semibold">{store.minutes_used.toLocaleString()}</span>
+                          </td>
+                          <td className="text-end">
+                            <span className="fw-semibold text-success">${store.cost_estimate.toFixed(2)}</span>
+                          </td>
+                          <td>
+                            {store.last_call_date ? (
+                              <small className="text-muted">
+                                {new Date(store.last_call_date).toLocaleDateString('en-US', {
+                                  month: 'short',
+                                  day: 'numeric',
+                                  hour: '2-digit',
+                                  minute: '2-digit'
+                                })}
+                              </small>
+                            ) : (
+                              <small className="text-muted">—</small>
+                            )}
+                          </td>
+                          <td className="text-center">
+                            {store.status === 'active' ? (
+                              <Badge bg="success">Active</Badge>
+                            ) : (
+                              <Badge bg="secondary">Inactive</Badge>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                {mobileStoresData.stores.length === 0 && (
+                  <div className="text-center py-5">
+                    <IconifyIcon icon="solar:shop-2-linear" width={48} height={48} className="text-muted mb-3" />
+                    <p className="text-muted mb-0">No mobile stores found</p>
+                  </div>
+                )}
+              </CardBody>
+            </Card>
+          </Col>
+        </Row>
+      )}
 
       <Modal show={billingModalOpen} onHide={() => setBillingModalOpen(false)} size="lg" centered>
         <Modal.Header closeButton>

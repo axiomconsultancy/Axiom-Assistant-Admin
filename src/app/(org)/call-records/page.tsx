@@ -200,6 +200,22 @@ const CallRecordsPage = () => {
   }, [debouncedSearch, statusFilter, successFilter, selectedLocationIds])
 
   useEffect(() => {
+    const openCallId = searchParams.get('openCallId')
+    if (openCallId) {
+      const fetchAndOpenCall = async () => {
+        try {
+          const call = await callLogsApi.getById(openCallId)
+          setSelectedCall(call)
+          setShowDetailModal(true)
+        } catch (err) {
+          console.error("Failed to open call from link", err)
+        }
+      }
+      fetchAndOpenCall()
+    }
+  }, [searchParams])
+
+  useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as HTMLElement
       if (locationDropdownOpen && !target.closest('.location-dropdown-container')) {
@@ -1259,27 +1275,55 @@ const CallRecordsPage = () => {
             </>
           )}
         </Modal.Body>
-        <Modal.Footer className="border-0">
-          {openedFromComplaints && (
+        <Modal.Footer className="border-0 justify-content-between">
+          <div className="d-flex gap-2">
+            {selectedCall && (
+              <>
+                <Link href={`/complaints?call_log_id=${selectedCall.id}`} passHref legacyBehavior>
+                  <Button
+                    variant="outline-info"
+                    style={{ borderRadius: '8px' }}
+                    className="d-flex align-items-center"
+                  >
+                    <IconifyIcon icon="solar:clipboard-list-bold" width={18} height={18} className="me-2" />
+                    View Complaint
+                  </Button>
+                </Link>
+                <Link href={`/action-items?call_id=${selectedCall.id}`} passHref legacyBehavior>
+                  <Button
+                    variant="outline-info"
+                    style={{ borderRadius: '8px' }}
+                    className="d-flex align-items-center"
+                  >
+                    <IconifyIcon icon="solar:checklist-bold" width={18} height={18} className="me-2" />
+                    View Action Items
+                  </Button>
+                </Link>
+              </>
+            )}
+          </div>
+          <div className="d-flex gap-2">
+            {openedFromComplaints && (
+              <Button
+                variant="outline-primary"
+                onClick={handleBackToComplaints}
+                style={{ borderRadius: '8px' }}
+              >
+                <IconifyIcon icon="solar:arrow-left-bold" width={18} height={18} className="me-2" />
+                Back to Complaints
+              </Button>
+            )}
             <Button
-              variant="outline-primary"
-              onClick={handleBackToComplaints}
+              variant="secondary"
+              onClick={() => {
+                setShowDetailModal(false)
+                setOpenedFromComplaints(false)
+              }}
               style={{ borderRadius: '8px' }}
             >
-              <IconifyIcon icon="solar:arrow-left-bold" width={18} height={18} className="me-2" />
-              Back to Complaints
+              Close
             </Button>
-          )}
-          <Button
-            variant="secondary"
-            onClick={() => {
-              setShowDetailModal(false)
-              setOpenedFromComplaints(false)
-            }}
-            style={{ borderRadius: '8px' }}
-          >
-            Close
-          </Button>
+          </div>
         </Modal.Footer>
       </Modal>
 

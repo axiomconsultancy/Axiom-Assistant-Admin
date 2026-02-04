@@ -70,6 +70,7 @@ export interface ComplaintsListParams {
   status_filter?: ComplaintStatus
   severity_filter?: ComplaintSeverity
   location_ids?: string[]
+  call_log_id?: string
   sort?: 'newest' | 'oldest'
 }
 
