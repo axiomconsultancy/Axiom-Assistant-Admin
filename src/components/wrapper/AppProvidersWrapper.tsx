@@ -9,6 +9,7 @@ import { AuthProvider } from '@/context/useAuthContext'
 import { NotificationProvider } from '@/context/useNotificationContext'
 import { VoicesProvider } from '@/context/useVoicesContext'
 import { ChildrenType } from '@/types/component-props'
+import BrandingProvider from './BrandingProvider'
 // import { RealtimeProvider } from '@/context/RealtimeContext'
 
 
@@ -16,16 +17,18 @@ const AppProvidersWrapper = ({ children }: ChildrenType) => {
   return (
     <SessionProvider>
       <AuthProvider>
-        <VoicesProvider>
-          <LayoutProvider>
-            {/* <RealtimeProvider> */}
+        <BrandingProvider>
+          <VoicesProvider>
+            <LayoutProvider>
+              {/* <RealtimeProvider> */}
               <NotificationProvider>
                 {children}
                 <ToastContainer theme="colored" />
               </NotificationProvider>
-            {/* </RealtimeProvider> */}
-          </LayoutProvider>
-        </VoicesProvider>
+              {/* </RealtimeProvider> */}
+            </LayoutProvider>
+          </VoicesProvider>
+        </BrandingProvider>
       </AuthProvider>
     </SessionProvider>
   )

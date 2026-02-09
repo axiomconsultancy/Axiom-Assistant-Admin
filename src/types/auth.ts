@@ -24,6 +24,7 @@ export interface Organization {
   industry?: string
   status: string
   vertical_key?: VerticalKey // ADDED
+  color_scheme?: string[]
 }
 
 export interface PlatformUser {

@@ -1,0 +1,16 @@
+$pre-color: var(--#{$prefix}body-color);
+
+// Dynamic Branding Overrides
+$component-active-bg: var(--#{$prefix}primary, #{$primary});
+$link-color: var(--#{$prefix}primary, #{$primary});
+$link-hover-color: var(--#{$prefix}primary, #{$primary});
+$nav-pills-link-active-bg: var(--#{$prefix}primary, #{$primary});
+$pagination-active-bg: var(--#{$prefix}primary, #{$primary});
+$pagination-active-border-color: var(--#{$prefix}primary, #{$primary});
+$form-check-input-checked-bg-color: var(--#{$prefix}primary, #{$primary});
+$form-check-input-checked-border-color: var(--#{$prefix}primary, #{$primary});
+$form-check-input-indeterminate-bg-color: var(--#{$prefix}primary, #{$primary});
+$form-check-input-indeterminate-border-color: var(--#{$prefix}primary, #{$primary});
+$progress-bar-bg: var(--#{$prefix}primary, #{$primary});
+$list-group-active-bg: var(--#{$prefix}primary, #{$primary});
+$list-group-active-border-color: var(--#{$prefix}primary, #{$primary});

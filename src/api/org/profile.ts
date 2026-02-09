@@ -19,6 +19,7 @@ export interface OrganizationProfile {
   logo_url?: string
   industry?: string
   status: string
+  color_scheme?: string[]
 }
 
 export interface ProfileResponse {
@@ -51,9 +52,9 @@ export const profileApi = {
     return response.data
   },
 
-  async updateMyProfile(data: UpdateProfileRequest): Promise<{ 
+  async updateMyProfile(data: UpdateProfileRequest): Promise<{
     message: string
-    user: OrgUserProfile 
+    user: OrgUserProfile
   }> {
     const response = await axios.patch(`${API_BASE}/org/profile/me`, data, {
       headers: getAuthHeaders()

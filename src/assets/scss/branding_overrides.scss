@@ -1,0 +1,78 @@
+// 
+// Branding Overrides
+// 
+
+:root {
+    --taplox-primary-rgb: #{to-rgb($primary)};
+    --taplox-secondary-rgb: #{to-rgb($secondary)};
+}
+
+// Ensure buttons use the dynamic variables
+.btn-primary {
+    --#{$prefix}btn-bg: var(--#{$prefix}primary);
+    --#{$prefix}btn-border-color: var(--#{$prefix}primary);
+    --#{$prefix}btn-hover-bg: var(--#{$prefix}primary);
+    --#{$prefix}btn-hover-border-color: var(--#{$prefix}primary);
+    --#{$prefix}btn-active-bg: var(--#{$prefix}primary);
+    --#{$prefix}btn-active-border-color: var(--#{$prefix}primary);
+    --#{$prefix}btn-disabled-bg: var(--#{$prefix}primary);
+    --#{$prefix}btn-disabled-border-color: var(--#{$prefix}primary);
+
+    filter: brightness(1);
+    transition: filter 0.2s ease;
+
+    &:hover {
+        filter: brightness(0.9);
+    }
+
+    &:active {
+        filter: brightness(0.8);
+    }
+}
+
+.btn-soft-primary {
+    --#{$prefix}btn-color: var(--#{$prefix}primary);
+    --#{$prefix}btn-bg: rgba(var(--#{$prefix}primary-rgb), 0.1);
+    --#{$prefix}btn-hover-color: #fff;
+    --#{$prefix}btn-hover-bg: var(--#{$prefix}primary);
+    --#{$prefix}btn-hover-border-color: var(--#{$prefix}primary);
+}
+
+.btn-outline-primary {
+    --#{$prefix}btn-color: var(--#{$prefix}primary);
+    --#{$prefix}btn-border-color: var(--#{$prefix}primary);
+    --#{$prefix}btn-hover-bg: var(--#{$prefix}primary);
+    --#{$prefix}btn-hover-border-color: var(--#{$prefix}primary);
+    --#{$prefix}btn-active-bg: var(--#{$prefix}primary);
+    --#{$prefix}btn-active-border-color: var(--#{$prefix}primary);
+}
+
+// Sidebar overrides
+.side-nav {
+    .side-nav-link {
+        &.active {
+            color: var(--#{$prefix}primary) !important;
+
+            i {
+                color: var(--#{$prefix}primary) !important;
+            }
+        }
+    }
+}
+
+// Text colors
+.text-primary {
+    --#{$prefix}text-opacity: 1;
+    color: rgba(var(--#{$prefix}primary-rgb), var(--#{$prefix}text-opacity)) !important;
+}
+
+// Backgrounds
+.bg-primary {
+    --#{$prefix}bg-opacity: 1;
+    background-color: rgba(var(--#{$prefix}primary-rgb), var(--#{$prefix}bg-opacity)) !important;
+}
+
+.bg-soft-primary {
+    background-color: rgba(var(--#{$prefix}primary-rgb), 0.1) !important;
+    color: var(--#{$prefix}primary) !important;
+}
