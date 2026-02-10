@@ -538,7 +538,7 @@ const LocationsPage = () => {
         )
       }
     ],
-    [startIndex, isAdmin, handleDelete, adminEmailDomain, handleDisableMobileAccount, handleOpenMobileModal]
+    [startIndex, isAdmin, handleDelete, handleDisableMobileAccount, handleOpenMobileModal]
   )
 
   if (!isAuthenticated) {
@@ -1106,7 +1106,7 @@ The AI will figure it out automatically!`}
               </div>
               <h5 className="mb-3">Reach More Customers</h5>
               <p className="text-muted mb-0">
-                You've reached the free limit of <strong>{freeStoreLimit} stores</strong>.
+                You&apos;ve reached the free limit of <strong>{freeStoreLimit} stores</strong>.
                 To enable mobile access for additional locations, there is a one-time fee of <strong>$20 per store</strong>.
               </p>
             </div>

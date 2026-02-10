@@ -648,7 +648,7 @@ const UserManagementPage = () => {
         )
       }
     ],
-    [startIndex, isAdmin, primaryAdminId]
+    [startIndex, isAdmin, primaryAdminId, authUser]
   )
 
   return (

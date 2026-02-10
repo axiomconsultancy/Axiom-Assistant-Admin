@@ -414,7 +414,7 @@ const ComplaintsPage = () => {
     } finally {
       setLoading(false)
     }
-  }, [token, isAuthenticated, currentPage, pageSize, debouncedSearch, statusFilter, severityFilter, selectedLocationIds])
+  }, [token, isAuthenticated, currentPage, pageSize, debouncedSearch, statusFilter, severityFilter, selectedLocationIds, callLogIdFilter])
 
   useEffect(() => {
     fetchComplaints()

@@ -285,7 +285,7 @@ const ActionItemsPage = () => {
     } finally {
       setLoading(false)
     }
-  }, [token, isAuthenticated, currentPage, pageSize, typeFilter, statusFilter, urgencyFilter, assignedFilter])
+  }, [token, isAuthenticated, currentPage, pageSize, typeFilter, statusFilter, urgencyFilter, assignedFilter, callIdFilter])
 
 
   useEffect(() => {
@@ -905,7 +905,7 @@ const ActionItemsPage = () => {
         )
       }
     ],
-    [updatingField, updatingStatusId, startIndex, handleStatusChange, handleConfirmAppointment, handleConfirmOrder, handleUrgencyToggle, getUserName]
+    [updatingField, updatingStatusId, startIndex, handleStatusChange, handleConfirmAppointment, handleConfirmOrder, handleUrgencyToggle]
   )
 
   return (
