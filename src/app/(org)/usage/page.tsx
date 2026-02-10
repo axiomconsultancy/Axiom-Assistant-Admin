@@ -12,6 +12,7 @@ import { useAuth } from '@/context/useAuthContext'
 import { toast } from 'react-toastify'
 import { usageApi, type UsageOverviewResponse, type MobileStoresResponse } from '@/api/org/usage'
 import { useFeatureGuard } from '@/hooks/useFeatureGuard'
+import { getVerticalConfig } from '@/config/verticals'
 import dynamic from 'next/dynamic'
 
 const ReactApexChart = dynamic(() => import('react-apexcharts'), {
@@ -22,6 +23,13 @@ const UsageAndBillingPage = () => {
   useFeatureGuard()
   const { token, user, isAuthenticated } = useAuth()
   const isAdmin = Boolean(isAuthenticated && user?.role === 'admin')
+
+  // Vertical-based feature flags
+  const verticalConfig = React.useMemo(() => {
+    const verticalKey = user && 'organization' in user ? user.organization?.vertical_key : undefined
+    return getVerticalConfig(verticalKey)
+  }, [user])
+  const showAppEnabler = verticalConfig?.features?.showAppEnabler ?? false
 
   const [usageData, setUsageData] = useState<UsageOverviewResponse | null>(null)
   const [mobileStoresData, setMobileStoresData] = useState<MobileStoresResponse | null>(null)
@@ -431,7 +439,7 @@ const UsageAndBillingPage = () => {
       </Row>
 
       {/* Mobile Stores Overview */}
-      {mobileStoresData && mobileStoresData.summary.total_mobile_stores > 0 && (
+      {showAppEnabler && mobileStoresData && mobileStoresData.summary.total_mobile_stores > 0 && (
         <Row className="mb-3">
           <Col xs={12}>
             <Card className="border-0 shadow-sm">
@@ -487,7 +495,7 @@ const UsageAndBillingPage = () => {
       )}
 
       {/* Store-Wise Usage Section */}
-      {mobileStoresData && mobileStoresData.stores.length > 0 && (
+      {showAppEnabler && mobileStoresData && mobileStoresData.stores.length > 0 && (
         <Row>
           <Col xs={12}>
             <Card className="border-0 shadow-sm">

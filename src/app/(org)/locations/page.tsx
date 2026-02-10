@@ -12,6 +12,7 @@ import { toast } from 'react-toastify'
 import { locationsApi, type Location, type ParsedLocation } from '@/api/org/locations'
 import { usageApi } from '@/api/org/usage'
 import { useFeatureGuard } from '@/hooks/useFeatureGuard'
+import { getVerticalConfig } from '@/config/verticals'
 
 const DEFAULT_FREE_STORE_LIMIT = 2
 
@@ -63,6 +64,13 @@ const LocationsPage = () => {
   const [paymentLoading, setPaymentLoading] = useState(false)
 
   const isAdmin = Boolean(user && 'is_admin' in user && user.is_admin)
+
+  // Vertical-based feature flags
+  const verticalConfig = useMemo(() => {
+    const verticalKey = user && 'organization' in user ? user.organization?.vertical_key : undefined
+    return getVerticalConfig(verticalKey)
+  }, [user])
+  const showAppEnabler = verticalConfig?.features?.showAppEnabler ?? false
 
   // Get admin's email domain for suggestion
   const adminEmailDomain = useMemo(() => {
@@ -477,7 +485,6 @@ const LocationsPage = () => {
             ) : (
               <Badge bg="secondary" className="d-flex align-items-center gap-1" style={{ width: 'fit-content' }}>
                 <IconifyIcon icon="solar:lock-password-linear" width={14} height={14} />
-                Not Enabled
               </Badge>
             )}
           </div>
@@ -492,28 +499,30 @@ const LocationsPage = () => {
         defaultSticky: true,
         render: (location) => (
           <div className="d-flex gap-2">
-            {!location.mobile_account_enabled ? (
-              <Button
-                variant="success"
-                size="sm"
-                onClick={() => handleOpenMobileModal(location)}
-                title="Enable mobile app access"
-                style={{ borderRadius: '8px', width: 120 }}
-                disabled={!isAdmin}
-              >
-                <IconifyIcon icon="solar:smartphone-2-bold" width={16} height={16} /> Enable App
-              </Button>
-            ) : (
-              <Button
-                variant="warning"
-                size="sm"
-                onClick={() => handleDisableMobileAccount(location.id)}
-                title="Disable mobile app access"
-                style={{ borderRadius: '8px', width: 120 }}
-                disabled={!isAdmin}
-              >
-                <IconifyIcon icon="solar:lock-password-bold" width={16} height={16} /> Disable App
-              </Button>
+            {showAppEnabler && (
+              !location.mobile_account_enabled ? (
+                <Button
+                  variant="success"
+                  size="sm"
+                  onClick={() => handleOpenMobileModal(location)}
+                  title="Enable mobile app access"
+                  style={{ borderRadius: '8px', width: 120 }}
+                  disabled={!isAdmin}
+                >
+                  <IconifyIcon icon="solar:smartphone-2-bold" width={16} height={16} /> Enable App
+                </Button>
+              ) : (
+                <Button
+                  variant="warning"
+                  size="sm"
+                  onClick={() => handleDisableMobileAccount(location.id)}
+                  title="Disable mobile app access"
+                  style={{ borderRadius: '8px', width: 120 }}
+                  disabled={!isAdmin}
+                >
+                  <IconifyIcon icon="solar:lock-password-bold" width={16} height={16} /> Disable App
+                </Button>
+              )
             )}
             <Button
               variant="primary"
@@ -538,8 +547,14 @@ const LocationsPage = () => {
         )
       }
     ],
-    [startIndex, isAdmin, handleDelete, handleDisableMobileAccount, handleOpenMobileModal]
+    [startIndex, isAdmin, handleDelete, handleDisableMobileAccount, handleOpenMobileModal, showAppEnabler]
   )
+
+  // Filter column visibility based on vertical features
+  const finalColumns = useMemo(() => {
+    if (showAppEnabler) return columns
+    return columns.filter(col => col.key !== 'mobile_account')
+  }, [columns, showAppEnabler])
 
   if (!isAuthenticated) {
     return (
@@ -576,22 +591,24 @@ const LocationsPage = () => {
               </ol>
             </div>
             <div className="d-flex align-items-center gap-2">
-              <Badge
-                bg="light"
-                text="dark"
-                className={`border d-flex align-items-center gap-2 px-3 py-2 me-1 ${(enabledStoreCount >= freeStoreLimit) ? 'border-danger' :
-                  (enabledStoreCount >= freeStoreLimit * 0.8) ? 'border-warning' : ''
-                  }`}
-                style={{ borderRadius: '8px', height: '38px' }}
-              >
-                <IconifyIcon
-                  icon="solar:shop-2-bold"
-                  width={18}
-                  height={18}
-                  className={(enabledStoreCount >= freeStoreLimit) ? 'text-danger' : 'text-primary'}
-                />
-                <span className="fw-semibold">{enabledStoreCount} / {freeStoreLimit} Stores Enabled</span>
-              </Badge>
+              {showAppEnabler && (
+                <Badge
+                  bg="light"
+                  text="dark"
+                  className={`border d-flex align-items-center gap-2 px-3 py-2 me-1 ${(enabledStoreCount >= freeStoreLimit) ? 'border-danger' :
+                    (enabledStoreCount >= freeStoreLimit * 0.8) ? 'border-warning' : ''
+                    }`}
+                  style={{ borderRadius: '8px', height: '38px' }}
+                >
+                  <IconifyIcon
+                    icon="solar:shop-2-bold"
+                    width={18}
+                    height={18}
+                    className={(enabledStoreCount >= freeStoreLimit) ? 'text-danger' : 'text-primary'}
+                  />
+                  <span className="fw-semibold">{enabledStoreCount} / {freeStoreLimit} Stores Enabled</span>
+                </Badge>
+              )}
               <Button variant="outline-primary" onClick={handleOpenImportModal} style={{ borderRadius: '8px' }}>
                 <IconifyIcon icon="solar:upload-bold" width={18} height={18} className="me-2" />
                 Import from File
@@ -610,8 +627,8 @@ const LocationsPage = () => {
           <DataTable
             id="locations-table"
             title="Your Store Locations"
-            description="Manage store locations and mobile app access for store teams"
-            columns={columns}
+            description={showAppEnabler ? "Manage store locations and mobile app access for store teams" : "Manage your store locations"}
+            columns={finalColumns}
             data={locations}
             rowKey={(location) => location.id}
             loading={loading}
