@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useEffect, useState, useCallback, useMemo } from 'react'
-import { Row, Col, Button, Badge, Modal, Form, Alert, Table, Spinner, Nav, Card } from 'react-bootstrap'
+import { Row, Col, Button, Badge, Modal, Form, Alert, Table, Spinner, Nav, Card, CardBody } from 'react-bootstrap'
 import Link from 'next/link'
 import IconifyIcon from '@/components/wrapper/IconifyIcon'
 import Footer from '@/components/layout/Footer'
@@ -10,22 +10,25 @@ import { DataTable } from '@/components/table'
 import type { DataTableColumn } from '@/components/table'
 import { toast } from 'react-toastify'
 import { locationsApi, type Location, type ParsedLocation } from '@/api/org/locations'
+import { usageApi } from '@/api/org/usage'
 import { useFeatureGuard } from '@/hooks/useFeatureGuard'
+
+const DEFAULT_FREE_STORE_LIMIT = 2
 
 const LocationsPage = () => {
   useFeatureGuard()
   const { token, isAuthenticated, user } = useAuth()
-  
+
   const [locations, setLocations] = useState<Location[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [total, setTotal] = useState(0)
-  
+
   const [searchQuery, setSearchQuery] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
   const [currentPage, setCurrentPage] = useState(1)
   const [pageSize, setPageSize] = useState(25)
-  
+
   // Create/Edit modal
   const [showModal, setShowModal] = useState(false)
   const [editingLocation, setEditingLocation] = useState<Location | null>(null)
@@ -34,7 +37,7 @@ const LocationsPage = () => {
     store_location: ''
   })
   const [formSubmitting, setFormSubmitting] = useState(false)
-  
+
   // Import flow
   const [showImportModal, setShowImportModal] = useState(false)
   const [importMode, setImportMode] = useState<'file' | 'text'>('file')
@@ -52,8 +55,15 @@ const LocationsPage = () => {
   const [mobileEmail, setMobileEmail] = useState('')
   const [enablingMobile, setEnablingMobile] = useState(false)
 
+  // Store limit states
+  const [enabledStoreCount, setEnabledStoreCount] = useState(0)
+  const [freeStoreLimit] = useState(DEFAULT_FREE_STORE_LIMIT)
+  const [showPaymentModal, setShowPaymentModal] = useState(false)
+  const [isProcessingPayment, setIsProcessingPayment] = useState(false)
+  const [paymentLoading, setPaymentLoading] = useState(false)
+
   const isAdmin = Boolean(user && 'is_admin' in user && user.is_admin)
-  
+
   // Get admin's email domain for suggestion
   const adminEmailDomain = useMemo(() => {
     if (user && 'email' in user && user.email) {
@@ -73,17 +83,17 @@ const LocationsPage = () => {
 
   const fetchLocations = useCallback(async () => {
     if (!token || !isAuthenticated) return
-    
+
     setLoading(true)
     setError(null)
-    
+
     try {
       const response = await locationsApi.list({
         skip: (currentPage - 1) * pageSize,
         limit: pageSize,
         search: debouncedSearch || undefined
       })
-      
+
       setLocations(response.locations)
       setTotal(response.total)
     } catch (err: any) {
@@ -95,9 +105,19 @@ const LocationsPage = () => {
     }
   }, [token, isAuthenticated, currentPage, pageSize, debouncedSearch])
 
+  const fetchEnabledCount = useCallback(async () => {
+    try {
+      const resp = await usageApi.getMobileStores()
+      setEnabledStoreCount(resp.summary.total_mobile_stores)
+    } catch (err) {
+      console.error('Error fetching enabled count:', err)
+    }
+  }, [])
+
   useEffect(() => {
     fetchLocations()
-  }, [fetchLocations])
+    fetchEnabledCount()
+  }, [fetchLocations, fetchEnabledCount])
 
   const totalPages = Math.max(1, Math.ceil(total / pageSize))
   const startIndex = (currentPage - 1) * pageSize
@@ -132,14 +152,14 @@ const LocationsPage = () => {
 
   const handleSubmitForm = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     if (!formData.store_location.trim()) {
       toast.error('Store address is required')
       return
     }
-    
+
     setFormSubmitting(true)
-    
+
     try {
       if (editingLocation) {
         await locationsApi.update(editingLocation.id, formData)
@@ -148,7 +168,7 @@ const LocationsPage = () => {
         await locationsApi.create(formData)
         toast.success('Store location added successfully')
       }
-      
+
       handleCloseModal()
       fetchLocations()
     } catch (err: any) {
@@ -161,7 +181,7 @@ const LocationsPage = () => {
 
   const handleDelete = useCallback(async (locationId: string) => {
     if (!confirm('Are you sure you want to delete this store location? This will also remove any associated mobile account.')) return
-    
+
     try {
       await locationsApi.delete(locationId)
       toast.success('Store location removed successfully')
@@ -176,7 +196,7 @@ const LocationsPage = () => {
   const handleOpenMobileModal = (location: Location) => {
     setMobileLocation(location)
     // Auto-generate email suggestion
-    const suggestedEmail = location.store_number 
+    const suggestedEmail = location.store_number
       ? `${location.store_number}@${adminEmailDomain}`
       : `store@${adminEmailDomain}`
     setMobileEmail(suggestedEmail)
@@ -191,26 +211,38 @@ const LocationsPage = () => {
 
   const handleEnableMobileAccount = async () => {
     if (!mobileLocation) return
-    
+
+    // Limit check
+    if (enabledStoreCount >= freeStoreLimit) {
+      setIsProcessingPayment(false) // Show initial limit notification first
+      setShowPaymentModal(true)
+      // We don't close the mobile modal yet, we just transition to the payment flow
+      // or we can close it but keep the location/email state
+      // handleCloseMobileModal() // Removed so we keep state
+      setShowMobileModal(false) // Just hide the current modal
+      return
+    }
+
     if (!mobileEmail.trim()) {
       toast.error('Please enter a valid email address')
       return
     }
-    
+
     // Basic email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     if (!emailRegex.test(mobileEmail)) {
       toast.error('Please enter a valid email address')
       return
     }
-    
+
     setEnablingMobile(true)
-    
+
     try {
       await locationsApi.enableMobileAccount(mobileLocation.id, mobileEmail)
       toast.success('Mobile account enabled! Invitation email sent to the store.')
       handleCloseMobileModal()
       fetchLocations()
+      fetchEnabledCount()
     } catch (err: any) {
       const errorMsg = err?.response?.data?.detail || err?.message || 'Failed to enable mobile account'
       toast.error(errorMsg)
@@ -221,11 +253,12 @@ const LocationsPage = () => {
 
   const handleDisableMobileAccount = async (locationId: string) => {
     if (!confirm('Are you sure you want to disable the mobile account for this store? The store will lose access to the mobile app.')) return
-    
+
     try {
       await locationsApi.disableMobileAccount(locationId)
       toast.success('Mobile account disabled successfully')
       fetchLocations()
+      fetchEnabledCount()
     } catch (err: any) {
       const errorMsg = err?.response?.data?.detail || err?.message || 'Failed to disable mobile account'
       toast.error(errorMsg)
@@ -240,19 +273,19 @@ const LocationsPage = () => {
         toast.error('File must be less than 5MB')
         return
       }
-      
+
       const validTypes = [
         'application/pdf',
         'text/csv',
         'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
         'text/plain'
       ]
-      
+
       if (!validTypes.includes(file.type)) {
         toast.error('Unsupported file type. Please upload PDF, CSV, Word, or TXT file.')
         return
       }
-      
+
       setSelectedFile(file)
       setParseError(null)
     }
@@ -263,10 +296,10 @@ const LocationsPage = () => {
     setParseError(null)
     setParsedLocations([])
     setSelectedLocations(new Set())
-    
+
     try {
       let result
-      
+
       if (importMode === 'file' && selectedFile) {
         result = await locationsApi.parseFile(selectedFile)
       } else if (importMode === 'text' && pastedText.trim()) {
@@ -276,7 +309,7 @@ const LocationsPage = () => {
         setParsing(false)
         return
       }
-      
+
       if (result.parse_status === 'success' && result.locations.length > 0) {
         setParsedLocations(result.locations)
         setSelectedLocations(new Set(result.locations.map((_, idx) => idx)))
@@ -323,23 +356,23 @@ const LocationsPage = () => {
 
   const handleSaveLocations = async () => {
     const locationsToSave = parsedLocations.filter((_, idx) => selectedLocations.has(idx))
-    
+
     if (locationsToSave.length === 0) {
       toast.error('Please select at least one location to save')
       return
     }
-    
+
     setBulkSaving(true)
-    
+
     try {
       const result = await locationsApi.bulkCreate({ locations: locationsToSave })
-      
+
       if (result.errors.length > 0) {
         toast.warning(`Saved ${result.success_count} locations (${result.errors.length} duplicates skipped)`)
       } else {
         toast.success(`Successfully saved ${result.success_count} store locations`)
       }
-      
+
       handleCloseImportModal()
       fetchLocations()
     } catch (err: any) {
@@ -542,7 +575,23 @@ const LocationsPage = () => {
                 <li className="breadcrumb-item active">Locations</li>
               </ol>
             </div>
-            <div className="d-flex gap-2">
+            <div className="d-flex align-items-center gap-2">
+              <Badge
+                bg="light"
+                text="dark"
+                className={`border d-flex align-items-center gap-2 px-3 py-2 me-1 ${(enabledStoreCount >= freeStoreLimit) ? 'border-danger' :
+                  (enabledStoreCount >= freeStoreLimit * 0.8) ? 'border-warning' : ''
+                  }`}
+                style={{ borderRadius: '8px', height: '38px' }}
+              >
+                <IconifyIcon
+                  icon="solar:shop-2-bold"
+                  width={18}
+                  height={18}
+                  className={(enabledStoreCount >= freeStoreLimit) ? 'text-danger' : 'text-primary'}
+                />
+                <span className="fw-semibold">{enabledStoreCount} / {freeStoreLimit} Stores Enabled</span>
+              </Badge>
               <Button variant="outline-primary" onClick={handleOpenImportModal} style={{ borderRadius: '8px' }}>
                 <IconifyIcon icon="solar:upload-bold" width={18} height={18} className="me-2" />
                 Import from File
@@ -652,9 +701,9 @@ const LocationsPage = () => {
           <Button variant="secondary" onClick={handleCloseMobileModal} disabled={enablingMobile} style={{ borderRadius: '8px' }}>
             Cancel
           </Button>
-          <Button 
-            variant="success" 
-            onClick={handleEnableMobileAccount} 
+          <Button
+            variant="success"
+            onClick={handleEnableMobileAccount}
             disabled={enablingMobile}
             style={{ borderRadius: '8px' }}
           >
@@ -695,7 +744,7 @@ const LocationsPage = () => {
                 A unique identifier for this store
               </Form.Text>
             </Form.Group>
-            
+
             <Form.Group className="mb-3">
               <Form.Label>Store Address <span className="text-danger">*</span></Form.Label>
               <Form.Control
@@ -724,11 +773,11 @@ const LocationsPage = () => {
                 </>
               ) : (
                 <>
-                  <IconifyIcon 
-                    icon={editingLocation ? 'solar:check-circle-bold' : 'solar:add-circle-bold'} 
-                    width={18} 
-                    height={18} 
-                    className="me-2" 
+                  <IconifyIcon
+                    icon={editingLocation ? 'solar:check-circle-bold' : 'solar:add-circle-bold'}
+                    width={18}
+                    height={18}
+                    className="me-2"
                   />
                   {editingLocation ? 'Update Store' : 'Add Store'}
                 </>
@@ -759,14 +808,14 @@ const LocationsPage = () => {
                   <li><strong>File size limit:</strong> 5MB (around 50 pages for PDFs)</li>
                 </ul>
               </Alert>
-              
+
               {/* Tab selection */}
               <Nav variant="tabs" className="mb-4">
                 <Nav.Item>
-                  <Nav.Link 
-                    active={importMode === 'file'} 
+                  <Nav.Link
+                    active={importMode === 'file'}
                     onClick={() => setImportMode('file')}
-                    style={{ 
+                    style={{
                       cursor: 'pointer',
                       borderRadius: '8px 8px 0 0',
                       fontWeight: importMode === 'file' ? 600 : 400
@@ -777,10 +826,10 @@ const LocationsPage = () => {
                   </Nav.Link>
                 </Nav.Item>
                 <Nav.Item>
-                  <Nav.Link 
-                    active={importMode === 'text'} 
+                  <Nav.Link
+                    active={importMode === 'text'}
                     onClick={() => setImportMode('text')}
-                    style={{ 
+                    style={{
                       cursor: 'pointer',
                       borderRadius: '8px 8px 0 0',
                       fontWeight: importMode === 'text' ? 600 : 400
@@ -791,7 +840,7 @@ const LocationsPage = () => {
                   </Nav.Link>
                 </Nav.Item>
               </Nav>
-              
+
               {importMode === 'file' ? (
                 <Form.Group>
                   <Form.Label className="fw-semibold">Choose Your File</Form.Label>
@@ -805,7 +854,7 @@ const LocationsPage = () => {
                   <Form.Text className="text-muted">
                     Accepted formats: PDF, Excel (.xlsx, .csv), Word (.docx), or Text (.txt)
                   </Form.Text>
-                  
+
                   {selectedFile && (
                     <Card className="mt-3 border-0 shadow-sm">
                       <Card.Body className="d-flex align-items-center gap-3">
@@ -818,15 +867,15 @@ const LocationsPage = () => {
                             color: '#2E7D32'
                           }}
                         >
-                          <IconifyIcon 
+                          <IconifyIcon
                             icon={
                               selectedFile.type === 'application/pdf' ? 'solar:document-bold' :
-                              selectedFile.type.includes('spreadsheet') || selectedFile.type === 'text/csv' ? 'solar:chart-square-bold' :
-                              selectedFile.type.includes('word') ? 'solar:document-text-bold' :
-                              'solar:file-bold'
-                            } 
-                            width={28} 
-                            height={28} 
+                                selectedFile.type.includes('spreadsheet') || selectedFile.type === 'text/csv' ? 'solar:chart-square-bold' :
+                                  selectedFile.type.includes('word') ? 'solar:document-text-bold' :
+                                    'solar:file-bold'
+                            }
+                            width={28}
+                            height={28}
                           />
                         </div>
                         <div className="flex-grow-1">
@@ -872,7 +921,7 @@ The AI will figure it out automatically!`}
                     value={pastedText}
                     onChange={(e) => setPastedText(e.target.value)}
                     disabled={parsing}
-                    style={{ 
+                    style={{
                       borderRadius: '8px',
                       fontFamily: 'monospace',
                       fontSize: '0.9rem'
@@ -891,7 +940,7 @@ The AI will figure it out automatically!`}
                   )}
                 </Form.Group>
               )}
-              
+
               {parseError && (
                 <Alert variant="danger" className="mt-3 border-0" style={{ borderRadius: '8px' }}>
                   <div className="d-flex align-items-start gap-2">
@@ -923,23 +972,23 @@ The AI will figure it out automatically!`}
                   Review the stores below. You can edit any details or uncheck stores you do not want to import.
                 </p>
               </Alert>
-              
+
               <div className="mb-3 d-flex justify-content-between align-items-center p-3 bg-light rounded" style={{ borderRadius: '8px' }}>
                 <div>
                   <strong style={{ fontSize: '1.1rem', color: '#1976D2' }}>{selectedLocations.size}</strong>
                   <span className="text-muted"> of {parsedLocations.length} stores selected</span>
                 </div>
                 <Button variant="outline-primary" size="sm" onClick={handleToggleAll} style={{ borderRadius: '8px' }}>
-                  <IconifyIcon 
-                    icon={selectedLocations.size === parsedLocations.length ? 'solar:close-square-bold' : 'solar:check-square-bold'} 
-                    width={16} 
-                    height={16} 
-                    className="me-2" 
+                  <IconifyIcon
+                    icon={selectedLocations.size === parsedLocations.length ? 'solar:close-square-bold' : 'solar:check-square-bold'}
+                    width={16}
+                    height={16}
+                    className="me-2"
                   />
                   {selectedLocations.size === parsedLocations.length ? 'Uncheck All' : 'Check All'}
                 </Button>
               </div>
-              
+
               <div style={{ maxHeight: '400px', overflowY: 'auto', borderRadius: '8px', border: '1px solid #e0e0e0' }}>
                 <Table striped hover size="sm" className="mb-0">
                   <thead style={{ position: 'sticky', top: 0, background: 'white', zIndex: 1, boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
@@ -992,13 +1041,13 @@ The AI will figure it out automatically!`}
           <Button variant="secondary" onClick={handleCloseImportModal} disabled={parsing || bulkSaving} style={{ borderRadius: '8px' }}>
             Cancel
           </Button>
-          
+
           {parsedLocations.length === 0 ? (
             <Button
               variant="primary"
               onClick={handleParse}
               disabled={
-                parsing || 
+                parsing ||
                 (importMode === 'file' && !selectedFile) ||
                 (importMode === 'text' && !pastedText?.trim())
               }
@@ -1035,6 +1084,154 @@ The AI will figure it out automatically!`}
                 </>
               )}
             </Button>
+          )}
+        </Modal.Footer>
+      </Modal>
+
+      {/* Store Limit / Payment Modal */}
+      <Modal show={showPaymentModal} onHide={() => {
+        setShowPaymentModal(false)
+        if (!isProcessingPayment) handleCloseMobileModal() // Only clear if we didn't start payment
+      }} centered>
+        <Modal.Header closeButton className="border-0 pb-0">
+          <Modal.Title className="fw-bold">
+            {isProcessingPayment ? 'Payment Details' : 'Store Limit Reached'}
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body className="py-4">
+          {!isProcessingPayment ? (
+            <div className="text-center px-3">
+              <div className="mb-4 d-inline-flex align-items-center justify-content-center bg-light-primary rounded-circle" style={{ width: 80, height: 80, backgroundColor: 'rgba(102, 88, 221, 0.1)' }}>
+                <IconifyIcon icon="solar:shop-2-bold-duotone" width={48} height={48} className="text-primary" />
+              </div>
+              <h5 className="mb-3">Reach More Customers</h5>
+              <p className="text-muted mb-0">
+                You've reached the free limit of <strong>{freeStoreLimit} stores</strong>.
+                To enable mobile access for additional locations, there is a one-time fee of <strong>$20 per store</strong>.
+              </p>
+            </div>
+          ) : (
+            <div className="px-3">
+              <div className="bg-light p-3 rounded-3 mb-4 d-flex align-items-center justify-content-between">
+                <div>
+                  <small className="text-muted d-block">Enabling Access For:</small>
+                  <span className="fw-bold text-dark">{mobileLocation?.store_location}</span>
+                </div>
+                <div className="text-end">
+                  <small className="text-muted d-block">Amount:</small>
+                  <span className="fw-bold text-primary">$20.00</span>
+                </div>
+              </div>
+
+              <Form>
+                <Form.Group className="mb-3">
+                  <Form.Label className="small fw-semibold">Cardholder Name</Form.Label>
+                  <Form.Control type="text" defaultValue="John Doe" disabled style={{ borderRadius: '8px' }} />
+                </Form.Group>
+                <Form.Group className="mb-3">
+                  <Form.Label className="small fw-semibold">Card Number</Form.Label>
+                  <div className="position-relative">
+                    <Form.Control type="text" defaultValue="**** **** **** 4242" disabled style={{ borderRadius: '8px' }} />
+                    <div className="position-absolute top-50 end-0 translate-middle-y me-2">
+                      <IconifyIcon icon="logos:visa" width={32} />
+                    </div>
+                  </div>
+                </Form.Group>
+                <Row>
+                  <Col md={6}>
+                    <Form.Group className="mb-3">
+                      <Form.Label className="small fw-semibold">Expiry Date</Form.Label>
+                      <Form.Control type="text" defaultValue="12/28" disabled style={{ borderRadius: '8px' }} />
+                    </Form.Group>
+                  </Col>
+                  <Col md={6}>
+                    <Form.Group className="mb-3">
+                      <Form.Label className="small fw-semibold">CVC</Form.Label>
+                      <Form.Control type="text" defaultValue="***" disabled style={{ borderRadius: '8px' }} />
+                    </Form.Group>
+                  </Col>
+                </Row>
+              </Form>
+              <div className="d-flex align-items-center gap-2 text-muted small mt-2">
+                <IconifyIcon icon="solar:lock-bold" width={14} height={14} />
+                <span>Secure payment powered by DummyStripe</span>
+              </div>
+            </div>
+          )}
+        </Modal.Body>
+        <Modal.Footer className="border-0 pt-0 pb-4 justify-content-center flex-column gap-2 px-4 text-center">
+          {!isProcessingPayment ? (
+            <>
+              <Button
+                variant="primary"
+                className="w-100 py-2 d-flex align-items-center justify-content-center gap-2"
+                style={{ borderRadius: '8px' }}
+                onClick={() => setIsProcessingPayment(true)}
+              >
+                <IconifyIcon icon="solar:card-2-bold" width={20} height={20} />
+                Continue to Payment ($20)
+              </Button>
+              <Button
+                variant="link"
+                className="text-muted text-decoration-none small"
+                onClick={() => {
+                  setShowPaymentModal(false)
+                  handleCloseMobileModal()
+                }}
+              >
+                Maybe Later
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button
+                variant="primary"
+                className="w-100 py-2 d-flex align-items-center justify-content-center gap-2"
+                style={{ borderRadius: '8px' }}
+                disabled={paymentLoading}
+                onClick={async () => {
+                  setPaymentLoading(true)
+                  // Dummy loading delay
+                  await new Promise(resolve => setTimeout(resolve, 1500))
+
+                  // Successful "payment", now enable store
+                  try {
+                    if (!mobileLocation) return
+                    await locationsApi.enableMobileAccount(mobileLocation.id, mobileEmail)
+                    toast.success('Payment successful! Store mobile account enabled.')
+                    setShowPaymentModal(false)
+                    setIsProcessingPayment(false)
+                    handleCloseMobileModal()
+                    fetchLocations()
+                    fetchEnabledCount()
+                  } catch (err: any) {
+                    toast.error('Payment processed, but store enablement failed. Please contact support.')
+                  } finally {
+                    setPaymentLoading(false)
+                  }
+                }}
+              >
+                {paymentLoading ? (
+                  <>
+                    <Spinner animation="border" size="sm" />
+                    Processing...
+                  </>
+                ) : (
+                  <>
+                    <IconifyIcon icon="solar:check-circle-bold" width={20} height={20} />
+                    Confirm & Pay $20.00
+                  </>
+                )}
+              </Button>
+              <Button
+                variant="link"
+                className="text-muted text-decoration-none small"
+                disabled={paymentLoading}
+                onClick={() => setIsProcessingPayment(false)}
+              >
+                Go Back
+              </Button>
+            </>
           )}
         </Modal.Footer>
       </Modal>

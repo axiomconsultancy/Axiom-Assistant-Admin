@@ -33,19 +33,19 @@ const StatusDropdown = ({
       label: 'New',
       icon: 'solar:clock-circle-bold',
       color: '#dc3545',
-      bgColor: '#fff5f5'
+      bgColor: '#fff5f500'
     },
     in_progress: {
       label: 'In Progress',
       icon: 'solar:settings-bold',
       color: '#fd7e14',
-      bgColor: '#fff8f0'
+      bgColor: '#fff8f000'
     },
     resolved: {
       label: 'Resolved',
       icon: 'solar:check-circle-bold',
       color: '#198754',
-      bgColor: '#f0fdf4'
+      bgColor: '#f0fdf400'
     }
   }
 

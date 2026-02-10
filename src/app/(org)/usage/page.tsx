@@ -233,54 +233,7 @@ const UsageAndBillingPage = () => {
         ))}
       </Row>
 
-      {/* Mobile Stores Overview */}
-      {mobileStoresData && mobileStoresData.summary.total_mobile_stores > 0 && (
-        <Row className="mb-3">
-          <Col xs={12}>
-            <Card className="border-0 shadow-sm">
-              <CardBody>
-                <div className="d-flex align-items-center justify-content-between mb-3">
-                  <h5 className="mb-0 d-flex align-items-center gap-2">
-                    <IconifyIcon icon="solar:shop-2-linear" width={24} height={24} className="text-primary" />
-                    Mobile Stores Overview
-                  </h5>
-                  <Badge bg="primary">{mobileStoresData.summary.total_mobile_stores} Total Stores</Badge>
-                </div>
-                <Row className="g-3">
-                  <Col md={6} lg={3}>
-                    <div className="text-center p-3 bg-light rounded">
-                      <IconifyIcon icon="solar:check-circle-bold" width={32} height={32} className="text-success mb-2" />
-                      <h4 className="mb-1">{mobileStoresData.summary.active_stores}</h4>
-                      <small className="text-muted">Active Stores</small>
-                    </div>
-                  </Col>
-                  <Col md={6} lg={3}>
-                    <div className="text-center p-3 bg-light rounded">
-                      <IconifyIcon icon="solar:phone-calling-rounded-bold" width={32} height={32} className="text-info mb-2" />
-                      <h4 className="mb-1">{mobileStoresData.summary.total_calls.toLocaleString()}</h4>
-                      <small className="text-muted">Total Calls</small>
-                    </div>
-                  </Col>
-                  <Col md={6} lg={3}>
-                    <div className="text-center p-3 bg-light rounded">
-                      <IconifyIcon icon="solar:clock-circle-bold" width={32} height={32} className="text-warning mb-2" />
-                      <h4 className="mb-1">{mobileStoresData.summary.total_minutes.toLocaleString()}</h4>
-                      <small className="text-muted">Total Minutes</small>
-                    </div>
-                  </Col>
-                  <Col md={6} lg={3}>
-                    <div className="text-center p-3 bg-light rounded">
-                      <IconifyIcon icon="solar:dollar-minimalistic-bold" width={32} height={32} className="text-success mb-2" />
-                      <h4 className="mb-1">${mobileStoresData.summary.total_cost_estimate.toFixed(2)}</h4>
-                      <small className="text-muted">Estimated Cost</small>
-                    </div>
-                  </Col>
-                </Row>
-              </CardBody>
-            </Card>
-          </Col>
-        </Row>
-      )}
+
 
       <Row>
         <Col md={6} lg={3} className="mb-3">
@@ -454,7 +407,7 @@ const UsageAndBillingPage = () => {
                 <div className="text-muted small text-capitalize">per {usageData.plan.billing_frequency}</div>
               </div>
               <hr />
-              <div className="d-grid gap-2">
+              {/* <div className="d-grid gap-2">
                 <Button
                   variant="outline-primary"
                   size="sm"
@@ -471,11 +424,67 @@ const UsageAndBillingPage = () => {
                   <IconifyIcon icon="solar:rocket-linear" className="me-2" />
                   Upgrade Plan
                 </Button>
-              </div>
+              </div> */}
             </CardBody>
           </Card>
         </Col>
       </Row>
+
+      {/* Mobile Stores Overview */}
+      {mobileStoresData && mobileStoresData.summary.total_mobile_stores > 0 && (
+        <Row className="mb-3">
+          <Col xs={12}>
+            <Card className="border-0 shadow-sm">
+              <CardBody>
+                <div className="d-flex align-items-center justify-content-between mb-3">
+                  <h5 className="mb-0 d-flex align-items-center gap-2">
+                    <IconifyIcon icon="solar:shop-2-linear" width={24} height={24} className="text-primary" />
+                    Mobile Stores Overview
+                  </h5>
+                  {/* <Badge bg="primary">{mobileStoresData.summary.total_mobile_stores} Total Stores</Badge> */}
+                </div>
+                <Row className="g-3">
+                  <Col md={6} lg={3}>
+                    <div className="text-center p-3 bg-light rounded">
+                      <IconifyIcon icon="solar:shop-2-linear" width={32} height={32} className="text-success mb-2" />
+                      <h4 className="mb-1">{mobileStoresData.summary.total_mobile_stores}</h4>
+                      <small className="text-muted">Enabled Stores</small>
+                    </div>
+                  </Col>
+                  <Col md={6} lg={3}>
+                    <div className="text-center p-3 bg-light rounded">
+                      <IconifyIcon icon="solar:check-circle-bold" width={32} height={32} className="text-success mb-2" />
+                      <h4 className="mb-1">{mobileStoresData.summary.active_stores}</h4>
+                      <small className="text-muted">Active Stores</small>
+                    </div>
+                  </Col>
+                  <Col md={6} lg={3}>
+                    <div className="text-center p-3 bg-light rounded">
+                      <IconifyIcon icon="solar:phone-calling-rounded-bold" width={32} height={32} className="text-info mb-2" />
+                      <h4 className="mb-1">{mobileStoresData.summary.total_calls.toLocaleString()}</h4>
+                      <small className="text-muted">Total Calls</small>
+                    </div>
+                  </Col>
+                  <Col md={6} lg={3}>
+                    <div className="text-center p-3 bg-light rounded">
+                      <IconifyIcon icon="solar:clock-circle-bold" width={32} height={32} className="text-warning mb-2" />
+                      <h4 className="mb-1">{mobileStoresData.summary.total_minutes.toLocaleString()}</h4>
+                      <small className="text-muted">Total Minutes</small>
+                    </div>
+                  </Col>
+                  {/* <Col md={6} lg={3}>
+                    <div className="text-center p-3 bg-light rounded">
+                      <IconifyIcon icon="solar:dollar-minimalistic-bold" width={32} height={32} className="text-success mb-2" />
+                      <h4 className="mb-1">${mobileStoresData.summary.total_cost_estimate.toFixed(2)}</h4>
+                      <small className="text-muted">Estimated Cost</small>
+                    </div>
+                  </Col> */}
+                </Row>
+              </CardBody>
+            </Card>
+          </Col>
+        </Row>
+      )}
 
       {/* Store-Wise Usage Section */}
       {mobileStoresData && mobileStoresData.stores.length > 0 && (
@@ -514,7 +523,7 @@ const UsageAndBillingPage = () => {
                         <th>Email</th>
                         <th className="text-end">Calls</th>
                         <th className="text-end">Minutes</th>
-                        <th className="text-end">Est. Cost</th>
+                        {/* <th className="text-end">Est. Cost</th> */}
                         <th>Last Call</th>
                         <th className="text-center">Status</th>
                       </tr>
@@ -545,9 +554,9 @@ const UsageAndBillingPage = () => {
                           <td className="text-end">
                             <span className="fw-semibold">{store.minutes_used.toLocaleString()}</span>
                           </td>
-                          <td className="text-end">
+                          {/* <td className="text-end">
                             <span className="fw-semibold text-success">${store.cost_estimate.toFixed(2)}</span>
-                          </td>
+                          </td> */}
                           <td>
                             {store.last_call_date ? (
                               <small className="text-muted">

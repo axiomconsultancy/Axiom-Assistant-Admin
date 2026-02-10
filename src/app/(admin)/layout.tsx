@@ -12,21 +12,21 @@ const VerticalNavigationBar = dynamic(() => import('@/components/layout/Vertical
 
 const PlatformLayout = ({ children }: ChildrenType) => {
   return (
-    <AuthGuard
-      actor="platform"
-      signInPath="/auth/admin/sign-in"
-    >
-      <div className="wrapper">
-        <Suspense>
-          <TopNavigationBar />
-        </Suspense>
-        <VerticalNavigationBar />
-        <div className="page-content">
-          <Container fluid>{children}</Container>
-          <Footer />
-        </div>
+    // <AuthGuard
+    //   actor="platform"
+    //   signInPath="/auth/admin/sign-in"
+    // >
+    <div className="wrapper">
+      <Suspense>
+        <TopNavigationBar />
+      </Suspense>
+      <VerticalNavigationBar />
+      <div className="page-content">
+        <Container fluid>{children}</Container>
+        <Footer />
       </div>
-    </AuthGuard>
+    </div>
+    // </AuthGuard>
   )
 }
 

@@ -6,9 +6,11 @@ import Link from 'next/link'
 import { DataTable } from '@/components/table'
 import type { DataTableColumn, DataTableFilterControl } from '@/components/table'
 import IconifyIcon from '@/components/wrapper/IconifyIcon'
+import Footer from '@/components/layout/Footer'
 import { useAuth } from '@/context/useAuthContext'
 import { toast } from 'react-toastify'
 import { orgUsersApi, type OrgUser, type CreateOrgUserRequest, type UpdateOrgUserRequest, type OrgUsersListParams } from '@/api/org/users'
+import { organizationsApi } from '@/api/org/organizations'
 import { useFeatureGuard } from '@/hooks/useFeatureGuard'
 import { filterFeaturesByVertical } from '@/helpers/vertical-features'
 import { isOrgUser } from '@/types/auth'
@@ -47,10 +49,11 @@ const DEFAULT_FORM_STATE: UserFormState = {
 
 const UserManagementPage = () => {
   useFeatureGuard()
-  const { token, user, isAuthenticated } = useAuth()
+  const { token, user: authUser, isAuthenticated, refreshUser } = useAuth()
+  const [primaryAdminId, setPrimaryAdminId] = useState<string | null>(null)
 
   // Get vertical-filtered features
-  const verticalKey = isOrgUser(user) ? user.organization?.vertical_key : undefined
+  const verticalKey = isOrgUser(authUser) ? authUser.organization?.vertical_key : undefined
   const AVAILABLE_FEATURES = useMemo(
     () => filterFeaturesByVertical(ALL_FEATURES, verticalKey),
     [verticalKey]
@@ -82,7 +85,7 @@ const UserManagementPage = () => {
     },
   }), [AVAILABLE_FEATURES])
 
-  const isAdmin = Boolean(isAuthenticated && user && isOrgUser(user) && user.is_admin)
+  const isAdmin = Boolean(isAuthenticated && authUser && isOrgUser(authUser) && authUser.is_admin)
 
   const [users, setUsers] = useState<OrgUser[]>([])
   const [loading, setLoading] = useState(false)
@@ -154,9 +157,21 @@ const UserManagementPage = () => {
     }
   }, [token, isAuthenticated, currentPage, pageSize, debouncedSearch, statusFilter, roleFilter, adminFilter])
 
+  const fetchPrimaryAdmin = useCallback(async () => {
+    try {
+      const org = await organizationsApi.getCurrentOrganization()
+      if (org?.primary_org_user_id) {
+        setPrimaryAdminId(org.primary_org_user_id)
+      }
+    } catch (err) {
+      console.error('Error fetching primary admin info:', err)
+    }
+  }, [])
+
   useEffect(() => {
     fetchUsers()
-  }, [fetchUsers])
+    fetchPrimaryAdmin()
+  }, [fetchUsers, fetchPrimaryAdmin])
 
   const totalPages = Math.max(1, Math.ceil(total / pageSize))
   const startIndex = (currentPage - 1) * pageSize
@@ -246,7 +261,12 @@ const UserManagementPage = () => {
   const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    if (!selectedUser || !validateForm()) return
+    if (!selectedUser) return
+    if (selectedUser.id === primaryAdminId) {
+      toast.error('Primary administrator cannot be modified')
+      return
+    }
+    if (!validateForm()) return
 
     setSubmitting(true)
     try {
@@ -275,6 +295,10 @@ const UserManagementPage = () => {
 
   const handleDelete = async () => {
     if (!selectedUser) return
+    if (selectedUser.id === primaryAdminId) {
+      toast.error('Primary administrator cannot be deleted')
+      return
+    }
 
     setSubmitting(true)
     try {
@@ -536,7 +560,7 @@ const UserManagementPage = () => {
         key: 'features',
         header: 'Features',
         width: 110,
-        render: (user) => <span className="text-muted">{user.features.length} features</span>
+        render: (user) => <span className="text-muted">{user.is_admin ? 'All' : `${user.features.length} features`}</span>
       },
       {
         key: 'created_at',
@@ -556,44 +580,75 @@ const UserManagementPage = () => {
           <div className="d-flex gap-1 justify-content-left">
             <Button
               size="sm"
-              variant="outline-primary"
+              variant="primary"
               onClick={(e) => {
                 e.stopPropagation()
                 openViewModal(user)
               }}
               title="View"
+              style={{ borderRadius: '8px' }}
             >
-              <IconifyIcon icon="solar:eye-linear" width={16} height={16} />
+              <IconifyIcon icon="solar:eye-bold" width={16} height={16} />
             </Button>
             <Button
               size="sm"
-              variant="outline-secondary"
+              variant="secondary"
               onClick={(e) => {
                 e.stopPropagation()
+                const authUserId = isOrgUser(authUser) ? authUser._id : null
+                const isSelf = user.id === authUserId
+
+                if (!isAdmin) {
+                  toast.error('Only administrators can manage users')
+                  return
+                }
+                if (user.id === primaryAdminId && !isSelf) {
+                  toast.error('Primary administrator account cannot be modified')
+                  return
+                }
                 openEditModal(user)
               }}
-              title="Edit"
-              disabled={!isAdmin}
+              title={user.id === primaryAdminId && !(isOrgUser(authUser) && user.id === authUser._id) ? "Primary Admin (Restricted)" : "Edit"}
+              style={{
+                borderRadius: '8px',
+                opacity: (!isAdmin || (user.id === primaryAdminId && !(isOrgUser(authUser) && user.id === authUser._id))) ? 0.4 : 1,
+                filter: (!isAdmin || (user.id === primaryAdminId && !(isOrgUser(authUser) && user.id === authUser._id))) ? 'grayscale(1)' : 'none'
+              }}
             >
-              <IconifyIcon icon="solar:pen-linear" width={16} height={16} />
+              <IconifyIcon icon="solar:pen-bold" width={16} height={16} />
             </Button>
             <Button
               size="sm"
-              variant="outline-danger"
+              variant="danger"
               onClick={(e) => {
                 e.stopPropagation()
+                const authUserId = isOrgUser(authUser) ? authUser._id : null
+                const isSelf = user.id === authUserId
+
+                if (!isAdmin) {
+                  toast.error('Only administrators can manage users')
+                  return
+                }
+                if (user.id === primaryAdminId) {
+                  toast.error('Primary administrator account cannot be deleted')
+                  return
+                }
                 openDeleteModal(user)
               }}
-              title="Delete"
-              disabled={!isAdmin}
+              title={user.id === primaryAdminId ? "Primary Admin (Restricted)" : "Delete"}
+              style={{
+                borderRadius: '8px',
+                opacity: (!isAdmin || user.id === primaryAdminId) ? 0.4 : 1,
+                filter: (!isAdmin || user.id === primaryAdminId) ? 'grayscale(1)' : 'none'
+              }}
             >
-              <IconifyIcon icon="solar:trash-bin-minimalistic-linear" width={16} height={16} />
+              <IconifyIcon icon="solar:trash-bin-trash-bold" width={16} height={16} />
             </Button>
           </div>
         )
       }
     ],
-    [startIndex, isAdmin]
+    [startIndex, isAdmin, primaryAdminId]
   )
 
   return (
@@ -607,8 +662,8 @@ const UserManagementPage = () => {
                 <li className="breadcrumb-item">
                   <Link href="/">AI Assistant</Link>
                 </li>
-                <div className="mx-1" style={{ height: 24, paddingRight: '8px' }}>
-                  <IconifyIcon icon="bx:chevron-right" height={16} width={16} />
+                <div className="mx-1" style={{ height: 24, paddingRight: '8px', display: 'flex', alignItems: 'center' }}>
+                  <IconifyIcon icon="solar:alt-arrow-right-bold" height={14} width={14} className="text-muted" />
                 </div>
                 <li className="breadcrumb-item active">Users</li>
               </ol>
@@ -618,8 +673,9 @@ const UserManagementPage = () => {
               onClick={openCreateModal}
               disabled={!isAdmin}
               className="d-inline-flex align-items-center gap-2"
+              style={{ borderRadius: '8px' }}
             >
-              <IconifyIcon icon="solar:user-plus-linear" width={20} height={20} />
+              <IconifyIcon icon="solar:user-plus-bold" width={20} height={20} />
               Invite User
             </Button>
           </div>
@@ -630,8 +686,8 @@ const UserManagementPage = () => {
         <Col xs={12}>
           <DataTable
             id="users-table"
-            title="All Users"
-            description="Manage organization users and permissions"
+            title="Organization Team Members"
+            description="Manage user roles, feature access, and administrative permissions"
             columns={columns}
             data={users}
             rowKey={(user) => user.id}
@@ -672,8 +728,8 @@ const UserManagementPage = () => {
       {/* Create Modal */}
       <Modal show={createModalOpen} onHide={() => setCreateModalOpen(false)} size="lg" centered>
         <Form onSubmit={handleCreate}>
-          <Modal.Header closeButton>
-            <Modal.Title>Invite New User</Modal.Title>
+          <Modal.Header closeButton className="border-0 pb-0">
+            <Modal.Title className="fw-bold">Invite New User</Modal.Title>
           </Modal.Header>
           <Modal.Body>
             <Row className="g-3">
@@ -784,12 +840,13 @@ const UserManagementPage = () => {
               </Col>
             </Row>
           </Modal.Body>
-          <Modal.Footer className="justify-content-between">
-            <Button variant="link" onClick={() => setCreateModalOpen(false)} disabled={submitting}>
+          <Modal.Footer className="border-0 justify-content-between">
+            <Button variant="link" onClick={() => setCreateModalOpen(false)} disabled={submitting} style={{ textDecoration: 'none' }}>
               Cancel
             </Button>
-            <Button type="submit" variant="primary" disabled={submitting} className="d-inline-flex align-items-center gap-2">
+            <Button type="submit" variant="primary" disabled={submitting} className="d-inline-flex align-items-center gap-2" style={{ borderRadius: '8px' }}>
               {submitting && <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true" />}
+              <IconifyIcon icon="solar:check-circle-bold" width={18} height={18} />
               Send Invitation
             </Button>
           </Modal.Footer>
@@ -799,8 +856,8 @@ const UserManagementPage = () => {
       {/* Edit Modal */}
       <Modal show={editModalOpen} onHide={() => setEditModalOpen(false)} size="lg" centered>
         <Form onSubmit={handleUpdate}>
-          <Modal.Header closeButton>
-            <Modal.Title>Edit User</Modal.Title>
+          <Modal.Header closeButton className="border-0 pb-0">
+            <Modal.Title className="fw-bold">Edit User Details</Modal.Title>
           </Modal.Header>
           <Modal.Body>
             <Row className="g-3">
@@ -889,12 +946,13 @@ const UserManagementPage = () => {
               </Col>
             </Row>
           </Modal.Body>
-          <Modal.Footer className="justify-content-between">
-            <Button variant="link" onClick={() => setEditModalOpen(false)} disabled={submitting}>
+          <Modal.Footer className="border-0 justify-content-between">
+            <Button variant="link" onClick={() => setEditModalOpen(false)} disabled={submitting} style={{ textDecoration: 'none' }}>
               Cancel
             </Button>
-            <Button type="submit" variant="primary" disabled={submitting} className="d-inline-flex align-items-center gap-2">
+            <Button type="submit" variant="primary" disabled={submitting} className="d-inline-flex align-items-center gap-2" style={{ borderRadius: '8px' }}>
               {submitting && <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true" />}
+              <IconifyIcon icon="solar:check-circle-bold" width={18} height={18} />
               Save Changes
             </Button>
           </Modal.Footer>
@@ -903,8 +961,8 @@ const UserManagementPage = () => {
 
       {/* View Modal */}
       <Modal show={viewModalOpen} onHide={() => setViewModalOpen(false)} size="lg" centered>
-        <Modal.Header closeButton>
-          <Modal.Title>User Details</Modal.Title>
+        <Modal.Header closeButton className="border-0 pb-0">
+          <Modal.Title className="fw-bold">User Information</Modal.Title>
         </Modal.Header>
         <Modal.Body>
           {selectedUser && (
@@ -928,24 +986,34 @@ const UserManagementPage = () => {
                         tabIndex={0}
                         bg={getStatusVariant(selectedUser.status)}
                         className="text-capitalize d-inline-flex align-items-center gap-2"
-                        style={{ cursor: updatingUserId === selectedUser.id ? 'not-allowed' : 'pointer', userSelect: 'none' }}
+                        style={{ cursor: updatingUserId === selectedUser.id ? 'not-allowed' : 'pointer', userSelect: 'none', opacity: (selectedUser.id === primaryAdminId && selectedUser.id !== (isOrgUser(authUser) ? authUser._id : null)) ? 0.5 : 1, filter: (selectedUser.id === primaryAdminId && selectedUser.id !== (isOrgUser(authUser) ? authUser._id : null)) ? 'grayscale(1)' : 'none' }}
                         onClick={() => {
                           if (updatingUserId === selectedUser.id) return
+                          const authUserId = isOrgUser(authUser) ? authUser._id : null
+                          if (selectedUser.id === primaryAdminId && selectedUser.id !== authUserId) {
+                            toast.error('Primary administrator status cannot be changed')
+                            return
+                          }
                           handleStatusToggle(selectedUser.id, selectedUser.status)
                         }}
                         onKeyDown={(e) => {
                           if (updatingUserId === selectedUser.id) return
                           if (e.key === 'Enter' || e.key === ' ') {
                             e.preventDefault()
+                            const authUserId = isOrgUser(authUser) ? authUser._id : null
+                            if (selectedUser.id === primaryAdminId && selectedUser.id !== authUserId) {
+                              toast.error('Primary administrator status cannot be changed')
+                              return
+                            }
                             handleStatusToggle(selectedUser.id, selectedUser.status)
                           }
                         }}
-                        title="Click to toggle status"
-                      >                        
+                        title={selectedUser.id === primaryAdminId && selectedUser.id !== (isOrgUser(authUser) ? authUser._id : null) ? "Primary Admin (Restricted)" : "Click to toggle status"}
+                      >
                         {selectedUser.status}
                         {updatingUserId === selectedUser.id ? (
                           <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true" />
-                        ) : (
+                        ) : selectedUser.id === primaryAdminId ? null : (
                           <IconifyIcon icon="solar:alt-arrow-right-linear" width={14} height={14} />
                         )}
                       </Badge>
@@ -989,7 +1057,7 @@ const UserManagementPage = () => {
                   </div>
 
                 </Col>
-                
+
                 <Col md={12}>
                   <label className="text-muted small">Email Address</label>
                   <div className="fw-medium">{selectedUser.email}</div>
@@ -1010,24 +1078,34 @@ const UserManagementPage = () => {
                       tabIndex={0}
                       bg={selectedUser.is_admin ? 'primary' : 'secondary'}
                       className="d-inline-flex align-items-center gap-2"
-                      style={{ cursor: updatingUserId === selectedUser.id ? 'not-allowed' : 'pointer', userSelect: 'none' }}
+                      style={{ cursor: updatingUserId === selectedUser.id ? 'not-allowed' : 'pointer', userSelect: 'none', opacity: (selectedUser.id === primaryAdminId && selectedUser.id !== (isOrgUser(authUser) ? authUser._id : null)) ? 0.5 : 1, filter: (selectedUser.id === primaryAdminId && selectedUser.id !== (isOrgUser(authUser) ? authUser._id : null)) ? 'grayscale(1)' : 'none' }}
                       onClick={() => {
                         if (updatingUserId === selectedUser.id) return
+                        const authUserId = isOrgUser(authUser) ? authUser._id : null
+                        if (selectedUser.id === primaryAdminId && selectedUser.id !== authUserId) {
+                          toast.error('Primary administrator privileges cannot be changed')
+                          return
+                        }
                         handleAdminToggle(selectedUser.id, selectedUser.is_admin)
                       }}
                       onKeyDown={(e) => {
                         if (updatingUserId === selectedUser.id) return
                         if (e.key === 'Enter' || e.key === ' ') {
                           e.preventDefault()
+                          const authUserId = isOrgUser(authUser) ? authUser._id : null
+                          if (selectedUser.id === primaryAdminId && selectedUser.id !== authUserId) {
+                            toast.error('Primary administrator privileges cannot be changed')
+                            return
+                          }
                           handleAdminToggle(selectedUser.id, selectedUser.is_admin)
                         }
                       }}
-                      title="Click to toggle admin status"
-                    >                      
+                      title={selectedUser.id === primaryAdminId && selectedUser.id !== (isOrgUser(authUser) ? authUser._id : null) ? "Primary Admin (Restricted)" : "Click to toggle admin status"}
+                    >
                       {selectedUser.is_admin ? 'Admin' : 'Regular User'}
                       {updatingUserId === selectedUser.id ? (
                         <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true" />
-                      ) : (
+                      ) : selectedUser.id === primaryAdminId ? null : (
                         <IconifyIcon icon="solar:refresh-linear" width={14} height={14} />
                       )}
                     </Badge>
@@ -1063,14 +1141,20 @@ const UserManagementPage = () => {
             </div>
           )}
         </Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={() => setViewModalOpen(false)}>
+        <Modal.Footer className="border-0">
+          <Button variant="secondary" onClick={() => setViewModalOpen(false)} style={{ borderRadius: '8px' }}>
             Close
           </Button>
-          <Button variant="primary" onClick={() => {
-            setViewModalOpen(false)
-            if (selectedUser) openEditModal(selectedUser)
-          }}>
+          <Button
+            variant="primary"
+            onClick={() => {
+              setViewModalOpen(false)
+              if (selectedUser) openEditModal(selectedUser)
+            }}
+            style={{ borderRadius: '8px' }}
+            className="d-inline-flex align-items-center gap-2"
+          >
+            <IconifyIcon icon="solar:pen-bold" width={18} height={18} />
             Edit User
           </Button>
         </Modal.Footer>
@@ -1078,8 +1162,8 @@ const UserManagementPage = () => {
 
       {/* Delete Modal */}
       <Modal show={deleteModalOpen} onHide={() => setDeleteModalOpen(false)} centered>
-        <Modal.Header closeButton>
-          <Modal.Title>Delete User</Modal.Title>
+        <Modal.Header closeButton className="border-0 pb-0">
+          <Modal.Title className="fw-bold text-danger">Delete User Account</Modal.Title>
         </Modal.Header>
         <Modal.Body>
           <p className="mb-2">
@@ -1089,16 +1173,18 @@ const UserManagementPage = () => {
             This action cannot be undone. The user will lose access immediately.
           </p>
         </Modal.Body>
-        <Modal.Footer className="justify-content-between">
-          <Button variant="link" onClick={() => setDeleteModalOpen(false)} disabled={submitting}>
+        <Modal.Footer className="border-0 justify-content-between">
+          <Button variant="link" onClick={() => setDeleteModalOpen(false)} disabled={submitting} style={{ textDecoration: 'none' }}>
             Cancel
           </Button>
-          <Button variant="danger" onClick={handleDelete} disabled={submitting} className="d-inline-flex align-items-center gap-2">
+          <Button variant="danger" onClick={handleDelete} disabled={submitting} className="d-inline-flex align-items-center gap-2" style={{ borderRadius: '8px' }}>
             {submitting && <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true" />}
+            <IconifyIcon icon="solar:trash-bin-trash-bold" width={18} height={18} />
             Delete User
           </Button>
         </Modal.Footer>
       </Modal>
+      <Footer />
     </>
   )
 }

@@ -33,25 +33,25 @@ const StatusDropdown = ({
       label: 'Pending',
       icon: 'solar:clock-circle-bold',
       color: '#dc3545',
-      bgColor: '#fff5f5'
+      bgColor: '#fff5f500'
     },
     in_progress: {
       label: 'In-Progress',
       icon: 'solar:settings-bold',
       color: '#fd7e14',
-      bgColor: '#fff8f0'
+      bgColor: '#fff8f000'
     },
     completed: {
       label: 'Done',
       icon: 'solar:check-circle-bold',
       color: '#198754',
-      bgColor: '#f0fdf4'
+      bgColor: '#f0fdf400'
     },
     dismissed: {
       label: 'Cancelled',
       icon: 'solar:close-circle-bold',
       color: '#6c757d',
-      bgColor: '#f8f9fa'
+      bgColor: '#f8f9fa00'
     }
   }
 
@@ -606,17 +606,17 @@ const ActionItemsPage = () => {
   const getTypeConfig = (type: string) => {
     switch (type) {
       case 'appointment':
-        return { label: 'Schedule Meeting', icon: 'solar:calendar-mark-bold', color: '#0d6efd', bgColor: '#e7f1ff' }
+        return { label: 'Schedule Meeting', icon: 'solar:calendar-mark-bold', color: '#0d6efd', bgColor: 'rgba(13, 110, 253, 0.1)' }
       case 'order':
-        return { label: 'Process Order', icon: 'solar:bag-check-bold', color: '#198754', bgColor: '#d1f4e0' }
+        return { label: 'Process Order', icon: 'solar:bag-check-bold', color: '#198754', bgColor: 'rgba(25, 135, 84, 0.1)' }
       case 'incident':
-        return { label: 'Handle Issue', icon: 'solar:danger-triangle-bold', color: '#dc3545', bgColor: '#ffe5e5' }
+        return { label: 'Handle Issue', icon: 'solar:danger-triangle-bold', color: '#dc3545', bgColor: 'rgba(220, 53, 69, 0.1)' }
       case 'follow_up':
-        return { label: 'Follow Up', icon: 'solar:phone-calling-bold', color: '#0d6efd', bgColor: '#e7f1ff' }
+        return { label: 'Follow Up', icon: 'solar:phone-calling-bold', color: '#0d6efd', bgColor: 'rgba(13, 110, 253, 0.1)' }
       case 'task':
-        return { label: 'General Task', icon: 'solar:checklist-bold', color: '#6c757d', bgColor: '#e2e3e5' }
+        return { label: 'General Task', icon: 'solar:checklist-bold', color: '#6c757d', bgColor: 'rgba(108, 117, 125, 0.1)' }
       default:
-        return { label: type, icon: 'solar:checklist-bold', color: '#6c757d', bgColor: '#e2e3e5' }
+        return { label: type, icon: 'solar:checklist-bold', color: '#6c757d', bgColor: 'rgba(108, 117, 125, 0.1)' }
     }
   }
 
@@ -811,57 +811,57 @@ const ActionItemsPage = () => {
           />
         )
       },
-      {
-        key: 'assigned',
-        header: 'Team Member',
-        width: 160,
-        render: (item) => {
-          const assignedUserName = getUserName(item.assigned_to_user_id) || item.assigned_role
-          return assignedUserName ? (
-            <div className="d-flex align-items-center gap-2">
-              <IconifyIcon icon="solar:user-bold" width={16} height={16} className="text-primary" />
-              <Badge bg="light" text="dark" className="text-capitalize" style={{ fontSize: '0.8rem' }}>
-                {assignedUserName}
-              </Badge>
-            </div>
-          ) : (
-            <span className="text-muted fst-italic small">Not assigned</span>
-          )
-        }
-      },
-      {
-        key: 'due_at',
-        header: 'Deadline',
-        width: 180,
-        render: (item) => {
-          if (!item.due_at) return <span className="text-muted small">—</span>
+      // {
+      //   key: 'assigned',
+      //   header: 'Team Member',
+      //   width: 160,
+      //   render: (item) => {
+      //     const assignedUserName = getUserName(item.assigned_to_user_id) || item.assigned_role
+      //     return assignedUserName ? (
+      //       <div className="d-flex align-items-center gap-2">
+      //         <IconifyIcon icon="solar:user-bold" width={16} height={16} className="text-primary" />
+      //         <Badge bg="light" text="dark" className="text-capitalize" style={{ fontSize: '0.8rem' }}>
+      //           {assignedUserName}
+      //         </Badge>
+      //       </div>
+      //     ) : (
+      //       <span className="text-muted fst-italic small">Not assigned</span>
+      //     )
+      //   }
+      // },
+      // {
+      //   key: 'due_at',
+      //   header: 'Deadline',
+      //   width: 180,
+      //   render: (item) => {
+      //     if (!item.due_at) return <span className="text-muted small">—</span>
 
-          const dueDate = new Date(item.due_at)
-          const now = new Date()
-          const isOverdue = dueDate < now && item.status !== 'completed'
-          const isDueSoon = dueDate > now && (dueDate.getTime() - now.getTime()) < 24 * 60 * 60 * 1000
+      //     const dueDate = new Date(item.due_at)
+      //     const now = new Date()
+      //     const isOverdue = dueDate < now && item.status !== 'completed'
+      //     const isDueSoon = dueDate > now && (dueDate.getTime() - now.getTime()) < 24 * 60 * 60 * 1000
 
-          return (
-            <div>
-              <div className="small fw-semibold" style={{ color: isOverdue ? '#dc3545' : isDueSoon ? '#fd7e14' : '#6c757d' }}>
-                {formatDate(item.due_at)}
-              </div>
-              {isOverdue && item.status !== 'completed' && (
-                <Badge bg="danger" className="mt-1" style={{ fontSize: '0.7rem' }}>
-                  <IconifyIcon icon="solar:danger-circle-bold" width={12} height={12} className="me-1" />
-                  Overdue
-                </Badge>
-              )}
-              {isDueSoon && item.status !== 'completed' && (
-                <Badge bg="warning" className="mt-1" style={{ fontSize: '0.7rem' }}>
-                  <IconifyIcon icon="solar:clock-circle-bold" width={12} height={12} className="me-1" />
-                  Due Soon
-                </Badge>
-              )}
-            </div>
-          )
-        }
-      },
+      //     return (
+      //       <div>
+      //         <div className="small fw-semibold" style={{ color: isOverdue ? '#dc3545' : isDueSoon ? '#fd7e14' : '#6c757d' }}>
+      //           {formatDate(item.due_at)}
+      //         </div>
+      //         {isOverdue && item.status !== 'completed' && (
+      //           <Badge bg="danger" className="mt-1" style={{ fontSize: '0.7rem' }}>
+      //             <IconifyIcon icon="solar:danger-circle-bold" width={12} height={12} className="me-1" />
+      //             Overdue
+      //           </Badge>
+      //         )}
+      //         {isDueSoon && item.status !== 'completed' && (
+      //           <Badge bg="warning" className="mt-1" style={{ fontSize: '0.7rem' }}>
+      //             <IconifyIcon icon="solar:clock-circle-bold" width={12} height={12} className="me-1" />
+      //             Due Soon
+      //           </Badge>
+      //         )}
+      //       </div>
+      //     )
+      //   }
+      // },
       {
         key: 'actions',
         header: 'Staff Actions',
