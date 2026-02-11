@@ -8,7 +8,7 @@ const Footer = () => {
       <div className="container-fluid">
         <Row>
           <Col xs={12} className=" text-end">
-            <p className="mb-0">{currentYear} © Axiom</p>
+            <p className="mb-0">{currentYear} © Genifem</p>
           </Col>
         </Row>
       </div>

@@ -230,6 +230,8 @@ const ComplaintsPage = () => {
   const [audioError, setAudioError] = useState<string | null>(null)
 
   const [updatingStatusId, setUpdatingStatusId] = useState<string | null>(null)
+  const [showCallbackModal, setShowCallbackModal] = useState(false)
+  const [callbackComplaint, setCallbackComplaint] = useState<Complaint | null>(null)
 
   const shownNotifications = useRef<Set<string>>(new Set())
 
@@ -541,6 +543,11 @@ const ComplaintsPage = () => {
     router.push(`/call-records?openCallId=${callLogId}`)
   }, [router])
 
+  const handleOpenCallbackModal = useCallback((complaint: Complaint) => {
+    setCallbackComplaint(complaint)
+    setShowCallbackModal(true)
+  }, [])
+
   const formatDateTime = (dateString: string): string => {
     return new Date(dateString).toLocaleString('en-US', {
       year: 'numeric',
@@ -615,7 +622,7 @@ const ComplaintsPage = () => {
         render: (complaint) => (
           <div>
             <div className="fw-bold mb-1" style={{ fontSize: '0.95rem' }}>
-              {complaint.customer.customer_name || 'Unknown Customer'}
+              {(!complaint.customer.customer_name || complaint.customer.customer_name.toLowerCase() === 'unknown' || complaint.customer.customer_name.toLowerCase() === 'unknown customer') ? 'Not Mentioned' : complaint.customer.customer_name}
             </div>
             {complaint.customer.contact_phone && (
               <small className="text-muted d-flex align-items-center gap-1">
@@ -729,7 +736,8 @@ const ComplaintsPage = () => {
               <Badge
                 bg="danger"
                 className="d-flex align-items-center gap-1"
-                style={{ fontSize: '0.75rem', padding: '0.5rem 0.75rem' }}
+                onClick={() => handleOpenCallbackModal(complaint)}
+                style={{ fontSize: '0.75rem', padding: '0.5rem 0.75rem', cursor: 'pointer' }}
               >
                 <IconifyIcon icon="solar:phone-calling-bold" width={14} height={14} />
                 Yes
@@ -1143,7 +1151,7 @@ const ComplaintsPage = () => {
                   <Row className="g-3">
                     <Col md={6}>
                       <small className="text-muted d-block mb-1">Name</small>
-                      <strong>{selectedComplaint.customer.customer_name || 'Not provided'}</strong>
+                      <strong>{(!selectedComplaint.customer.customer_name || selectedComplaint.customer.customer_name.toLowerCase() === 'unknown' || selectedComplaint.customer.customer_name.toLowerCase() === 'unknown customer') ? 'Not Mentioned' : selectedComplaint.customer.customer_name}</strong>
                     </Col>
                     <Col md={6}>
                       <small className="text-muted d-block mb-1">Phone Number</small>
@@ -1237,7 +1245,7 @@ const ComplaintsPage = () => {
                     </Col>
                     <Col md={6}>
                       <small className="text-muted d-block mb-1">Receipt Status</small>
-                      <strong className="text-capitalize">{selectedComplaint.receipt_status || 'Unknown'}</strong>
+                      <strong className="text-capitalize">{(!selectedComplaint.receipt_status || selectedComplaint.receipt_status.toLowerCase() === 'unknown') ? 'Not Mentioned' : selectedComplaint.receipt_status}</strong>
                     </Col>
                     <Col md={6}>
                       <small className="text-muted d-block mb-1">Delivery Method</small>
@@ -1594,6 +1602,83 @@ const ComplaintsPage = () => {
           >
             <IconifyIcon icon="solar:arrow-right-bold" width={18} height={18} className="me-2" />
             Go to Call Records
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      {/* Callback Contact Modal */}
+      <Modal
+        show={showCallbackModal}
+        onHide={() => setShowCallbackModal(false)}
+        centered
+        style={{ backdropFilter: 'blur(4px)' }}
+      >
+        <Modal.Header closeButton className="border-0 pb-0">
+          <Modal.Title className="fw-bold">Contact Customer</Modal.Title>
+        </Modal.Header>
+        <Modal.Body className="pt-3">
+          {callbackComplaint && (
+            <div className="text-center pb-3">
+              <div
+                className="rounded-circle d-flex align-items-center justify-content-center mx-auto mb-3"
+                style={{
+                  width: 64,
+                  height: 64,
+                  backgroundColor: 'rgba(239, 84, 84, 0.1)',
+                  color: '#ef5454'
+                }}
+              >
+                <IconifyIcon icon="solar:phone-calling-bold" width={32} height={32} />
+              </div>
+              <h5 className="mb-1 fw-bold">
+                {(!callbackComplaint.customer.customer_name || callbackComplaint.customer.customer_name.toLowerCase() === 'unknown' || callbackComplaint.customer.customer_name.toLowerCase() === 'unknown customer') ? 'Not Mentioned' : callbackComplaint.customer.customer_name}
+              </h5>
+              <p className="text-muted mb-4">Customer needs a callback regarding their complaint.</p>
+
+              <div className="d-grid gap-3">
+                {callbackComplaint.customer.contact_phone ? (
+                  <Button
+                    variant="danger"
+                    className="py-2 fw-bold d-flex align-items-center justify-content-center gap-2"
+                    href={`tel:${callbackComplaint.customer.contact_phone}`}
+                    style={{ borderRadius: '12px' }}
+                  >
+                    <IconifyIcon icon="solar:phone-calling-bold" width={20} height={20} />
+                    Call {callbackComplaint.customer.contact_phone}
+                  </Button>
+                ) : (
+                  <Button variant="outline-secondary" disabled className="py-2" style={{ borderRadius: '12px' }}>
+                    Phone Number Not Available
+                  </Button>
+                )}
+
+                {callbackComplaint.customer.contact_email ? (
+                  <Button
+                    variant="outline-primary"
+                    className="py-2 fw-bold d-flex align-items-center justify-content-center gap-2"
+                    href={`mailto:${callbackComplaint.customer.contact_email}`}
+                    style={{ borderRadius: '12px' }}
+                  >
+                    <IconifyIcon icon="solar:letter-bold" width={20} height={20} />
+                    Send Email
+                  </Button>
+                ) : (
+                  <Button variant="outline-secondary" disabled className="py-2" style={{ borderRadius: '12px' }}>
+                    Email Not Available
+                  </Button>
+                )}
+              </div>
+            </div>
+          )}
+        </Modal.Body>
+        <Modal.Footer className="border-0 pt-0">
+          <Button
+            variant="light"
+            className="w-100 py-2 fw-semibold"
+            onClick={() => setShowCallbackModal(false)}
+            style={{ borderRadius: '12px' }}
+          >
+            Close
           </Button>
         </Modal.Footer>
       </Modal>

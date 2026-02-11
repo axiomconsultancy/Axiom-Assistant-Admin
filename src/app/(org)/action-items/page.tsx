@@ -131,6 +131,122 @@ const StatusDropdown = ({
   )
 }
 
+// Custom Priority Dropdown Component
+const PriorityDropdown = ({
+  currentUrgency,
+  onUrgencyChange,
+  isUpdating = false,
+  disabled = false
+}: {
+  currentUrgency: ActionItem['urgency']
+  onUrgencyChange: (newUrgency: ActionItem['urgency']) => void
+  isUpdating?: boolean
+  disabled?: boolean
+}) => {
+  const urgencyConfig = {
+    low: {
+      label: 'Low',
+      icon: 'solar:check-circle-bold',
+      color: '#6c757d',
+      bgColor: '#f8f9fa00'
+    },
+    medium: {
+      label: 'Medium',
+      icon: 'solar:info-circle-bold',
+      color: '#0d6efd',
+      bgColor: '#e7f1ff00'
+    },
+    high: {
+      label: 'High',
+      icon: 'solar:danger-circle-bold',
+      color: '#fd7e14',
+      bgColor: '#fff8f000'
+    },
+    critical: {
+      label: 'Critical',
+      icon: 'solar:danger-bold',
+      color: '#dc3545',
+      bgColor: '#fff5f500'
+    }
+  }
+
+  const current = urgencyConfig[currentUrgency] || urgencyConfig.low
+
+  return (
+    <Dropdown>
+      <Dropdown.Toggle
+        variant="light"
+        disabled={disabled || isUpdating}
+        bsPrefix="dropdown-toggle-no-caret"
+        style={{
+          backgroundColor: current.bgColor,
+          border: `1.5px solid ${current.color}`,
+          color: current.color,
+          fontWeight: 600,
+          fontSize: '0.8rem',
+          padding: '0.4rem 0.75rem',
+          borderRadius: '8px',
+          minWidth: '110px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: '0.4rem'
+        }}
+      >
+        {isUpdating ? (
+          <>
+            <Spinner size="sm" />
+            <span>...</span>
+          </>
+        ) : (
+          <>
+            <div className="d-flex align-items-center gap-1">
+              <IconifyIcon icon={current.icon} width={14} height={14} />
+              <span>{current.label}</span>
+            </div>
+          </>
+        )}
+        <IconifyIcon icon="solar:alt-arrow-down-bold" width={12} height={12} />
+      </Dropdown.Toggle>
+
+      <Dropdown.Menu style={{ minWidth: '150px' }}>
+        {Object.entries(urgencyConfig).map(([urgency, config]) => (
+          <Dropdown.Item
+            key={urgency}
+            onClick={() => onUrgencyChange(urgency as ActionItem['urgency'])}
+            active={currentUrgency === urgency}
+            style={{
+              padding: '0.6rem 1rem',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.75rem',
+              fontSize: '0.875rem',
+              fontWeight: currentUrgency === urgency ? 600 : 400
+            }}
+          >
+            <IconifyIcon
+              icon={config.icon}
+              width={16}
+              height={16}
+              style={{ color: config.color }}
+            />
+            <span>{config.label}</span>
+            {currentUrgency === urgency && (
+              <IconifyIcon
+                icon="solar:check-circle-bold"
+                width={14}
+                height={14}
+                className="ms-auto"
+                style={{ color: config.color }}
+              />
+            )}
+          </Dropdown.Item>
+        ))}
+      </Dropdown.Menu>
+    </Dropdown>
+  )
+}
+
 const ActionItemsPage = () => {
   const { token, user, isAuthenticated } = useAuth()
   const searchParams = useSearchParams()
@@ -490,19 +606,17 @@ const ActionItemsPage = () => {
     }
   }, [selectedItem, fetchPendingUrgentCount])
 
-  const handleUrgencyToggle = useCallback(async (itemId: string, currentUrgency: ActionItem['urgency']) => {
-    const newUrgency = (currentUrgency === 'high' || currentUrgency === 'critical') ? 'low' : 'high'
-
-    setUpdatingField({ itemId, field: 'urgency' })
+  const handleUrgencyChange = useCallback(async (item: ActionItem, newUrgency: ActionItem['urgency']) => {
+    setUpdatingField({ itemId: item.id, field: 'urgency' })
     try {
-      await actionItemsApi.update(itemId, { urgency: newUrgency })
+      await actionItemsApi.update(item.id, { urgency: newUrgency })
       await fetchPendingUrgentCount()
 
-      setActionItems(prev => prev.map(item =>
-        item.id === itemId ? { ...item, urgency: newUrgency, updated_at: new Date().toISOString() } : item
+      setActionItems(prev => prev.map(i =>
+        i.id === item.id ? { ...i, urgency: newUrgency, updated_at: new Date().toISOString() } : i
       ))
 
-      if (selectedItem && selectedItem.id === itemId) {
+      if (selectedItem && selectedItem.id === item.id) {
         setSelectedItem({ ...selectedItem, urgency: newUrgency, updated_at: new Date().toISOString() })
       }
 
@@ -732,39 +846,11 @@ const ActionItemsPage = () => {
         width: 130,
         align: 'left',
         render: (item) => (
-          <div
-            onClick={() => updatingField?.itemId !== item.id && handleUrgencyToggle(item.id, item.urgency)}
-            style={{ cursor: updatingField?.itemId === item.id ? 'not-allowed' : 'pointer' }}
-            title="Click to change priority"
-          >
-            <Badge
-              bg={isUrgent(item.urgency) ? 'danger' : 'secondary'}
-              className="d-inline-flex align-items-center gap-1"
-              style={{
-                cursor: updatingField?.itemId === item.id ? 'not-allowed' : 'pointer',
-                transition: 'all 0.2s ease',
-                fontSize: '0.75rem',
-                padding: '0.5rem 0.75rem'
-              }}
-            >
-              {updatingField?.itemId === item.id && updatingField.field === 'urgency' ? (
-                <>
-                  <span className="spinner-border spinner-border-sm" role="status" />
-                  <span className="small">...</span>
-                </>
-              ) : (
-                <>
-                  <IconifyIcon
-                    icon={isUrgent(item.urgency) ? 'solar:danger-circle-bold' : 'solar:check-circle-bold'}
-                    width={14}
-                    height={14}
-                  />
-                  {isUrgent(item.urgency) ? 'High' : 'Normal'}
-                  <IconifyIcon icon="solar:refresh-linear" width={12} height={12} />
-                </>
-              )}
-            </Badge>
-          </div>
+          <PriorityDropdown
+            currentUrgency={item.urgency}
+            onUrgencyChange={(newUrgency) => handleUrgencyChange(item, newUrgency)}
+            isUpdating={updatingField?.itemId === item.id && updatingField.field === 'urgency'}
+          />
         )
       },
       {
@@ -905,7 +991,7 @@ const ActionItemsPage = () => {
         )
       }
     ],
-    [updatingField, updatingStatusId, startIndex, handleStatusChange, handleConfirmAppointment, handleConfirmOrder, handleUrgencyToggle]
+    [updatingField, updatingStatusId, startIndex, handleStatusChange, handleConfirmAppointment, handleConfirmOrder]
   )
 
   return (
@@ -991,35 +1077,12 @@ const ActionItemsPage = () => {
                   />
                 </div>
                 <div className="text-end">
-                  <small className="text-muted d-block mb-1">Priority Level</small>
-                  <div
-                    onClick={() => handleUrgencyToggle(selectedItem.id, selectedItem.urgency)}
-                    style={{ cursor: 'pointer', display: 'inline-block' }}
-                    title="Click to change"
-                  >
-                    <Badge
-                      bg={isUrgent(selectedItem.urgency) ? 'danger' : 'secondary'}
-                      className="d-inline-flex align-items-center gap-1"
-                      style={{ cursor: 'pointer', fontSize: '0.875rem', padding: '0.5rem 1rem' }}
-                    >
-                      {updatingField?.itemId === selectedItem.id && updatingField.field === 'urgency' ? (
-                        <>
-                          <span className="spinner-border spinner-border-sm" role="status" />
-                          <span className="small">Updating...</span>
-                        </>
-                      ) : (
-                        <>
-                          <IconifyIcon
-                            icon={isUrgent(selectedItem.urgency) ? 'solar:danger-circle-bold' : 'solar:check-circle-bold'}
-                            width={16}
-                            height={16}
-                          />
-                          {isUrgent(selectedItem.urgency) ? 'High Priority' : 'Normal Priority'}
-                          <IconifyIcon icon="solar:refresh-linear" width={12} height={12} />
-                        </>
-                      )}
-                    </Badge>
-                  </div>
+                  <small className="text-muted d-block mb-2">Priority Level</small>
+                  <PriorityDropdown
+                    currentUrgency={selectedItem.urgency}
+                    onUrgencyChange={(newUrgency) => handleUrgencyChange(selectedItem, newUrgency)}
+                    isUpdating={updatingField?.itemId === selectedItem.id && updatingField.field === 'urgency'}
+                  />
                 </div>
               </div>
 

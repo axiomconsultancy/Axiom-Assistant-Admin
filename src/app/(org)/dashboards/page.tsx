@@ -216,6 +216,34 @@ const DashboardPage = () => {
     loadDashboardData()
   }, [period, loadDashboardData])
 
+  const processedStores = useMemo(() => {
+    const rawStores = storeComparison?.stores || [];
+    const known = rawStores.filter(s => {
+      const loc = s.store_location?.toLowerCase().trim() || '';
+      return loc && loc !== '' && !loc.includes('unknown') && !loc.includes('not mentioned');
+    });
+    const unknown = rawStores.filter(s => {
+      const loc = s.store_location?.toLowerCase().trim() || '';
+      return !loc || loc === '' || loc.includes('unknown') || loc.includes('not mentioned');
+    });
+
+    if (unknown.length === 0) return known;
+
+    const otherStore = {
+      location_id: 'other',
+      store_location: 'Others',
+      store_number: 'N/A',
+      call_count: unknown.reduce((acc, s) => acc + (s.call_count || 0), 0),
+      percentage_of_total: unknown.reduce((acc, s) => acc + (s.percentage_of_total || 0), 0),
+      avg_duration_seconds: unknown.reduce((acc, s) => acc + (s.avg_duration_seconds || 0), 0) / unknown.length,
+      success_rate: unknown.reduce((acc, s) => acc + (s.success_rate || 0), 0) / unknown.length,
+      avg_duration: 'N/A',
+      trend: 'stable'
+    };
+
+    return [...known, otherStore];
+  }, [storeComparison]);
+
   // Calls Over Time Chart
   const callsOverTimeChart: ApexOptions = useMemo(() => ({
     chart: {
@@ -319,7 +347,7 @@ const DashboardPage = () => {
 
   // Store Comparison Chart
   const storeComparisonChart: ApexOptions = useMemo(() => {
-    const stores = storeComparison?.stores || []
+    const stores = processedStores
     const topStores = stores
       .sort((a, b) => b.call_count - a.call_count)
       .slice(0, 10)
@@ -379,7 +407,7 @@ const DashboardPage = () => {
 
   // Store Success Rates Chart
   const storeSuccessRatesChart: ApexOptions = useMemo(() => {
-    const stores = storeComparison?.stores || []
+    const stores = processedStores
     const topStores = stores
       .sort((a, b) => b.call_count - a.call_count)
       .slice(0, 10)
@@ -441,7 +469,7 @@ const DashboardPage = () => {
 
   // Store Average Duration Chart
   const storeAvgDurationChart: ApexOptions = useMemo(() => {
-    const stores = storeComparison?.stores || []
+    const stores = processedStores
     const topStores = stores
       .sort((a, b) => b.call_count - a.call_count)
       .slice(0, 10)
@@ -497,7 +525,7 @@ const DashboardPage = () => {
 
   // Store Performance Matrix Chart
   const storePerformanceMatrixChart: ApexOptions = useMemo(() => {
-    const stores = storeComparison?.stores || []
+    const stores = processedStores
     const topStores = stores
       .sort((a, b) => b.call_count - a.call_count)
       .slice(0, 8)
@@ -829,7 +857,7 @@ const DashboardPage = () => {
           </Card>
         </Col>
 
-        <Col lg={3} md={6}>
+        {/* <Col lg={3} md={6}>
           <Card className="border-0 shadow-sm">
             <CardBody>
               <div className="d-flex align-items-center">
@@ -852,7 +880,7 @@ const DashboardPage = () => {
               </div>
             </CardBody>
           </Card>
-        </Col>
+        </Col> */}
 
         <Col lg={3} md={6}>
           <Card className="border-0 shadow-sm">
@@ -880,10 +908,6 @@ const DashboardPage = () => {
             </CardBody>
           </Card>
         </Col>
-      </Row>
-
-      {/* KPI Cards Row 3 - Business Metrics */}
-      <Row>
         <Col lg={3} md={6}>
           <Card className="border-0 shadow-sm">
             <CardBody>
@@ -900,6 +924,11 @@ const DashboardPage = () => {
             </CardBody>
           </Card>
         </Col>
+      </Row>
+
+      {/* KPI Cards Row 3 - Business Metrics */}
+      <Row>
+
 
         {/* <Col lg={3} md={6}>
           <Card className="border-0 shadow-sm">
@@ -977,7 +1006,7 @@ const DashboardPage = () => {
 
       {/* Main Charts Row */}
       <Row>
-        <Col lg={8} xl={8}>
+        <Col lg={12} xl={12}>
           <Card className="border-0 shadow-sm">
             <CardHeader className="d-flex justify-content-between align-items-center">
               <CardTitle as="h5" className="mb-0">
@@ -998,7 +1027,7 @@ const DashboardPage = () => {
         </Col>
 
         {storeComparison && storeComparison.stores.length > 0 && (
-          <Col lg={4} xl={4}>
+          <Col lg={6} xl={6}>
             <Card className="border-0 shadow-sm">
               <CardHeader>
                 <CardTitle as="h5" className="mb-0">
@@ -1018,7 +1047,7 @@ const DashboardPage = () => {
           </Col>
         )}
 
-        <Col lg={4}>
+        <Col lg={6}>
           <Card className="border-0 shadow-sm">
             <CardHeader>
               <CardTitle as="h5" className="mb-0">
@@ -1142,7 +1171,7 @@ const DashboardPage = () => {
       )}
 
       {/* Tertiary Charts Row */}
-      <Row>
+      {/* <Row>
         <Col lg={4}>
           <Card className="border-0 shadow-sm">
             <CardHeader>
@@ -1199,7 +1228,7 @@ const DashboardPage = () => {
             </CardBody>
           </Card>
         </Col>
-      </Row>
+      </Row> */}
 
       {/* Performance Summary Cards */}
       <Row>

@@ -517,7 +517,7 @@ const CallRecordsPage = () => {
                 <IconifyIcon icon="solar:user-bold" width={16} height={16} />
               </div> */}
               <div className="fw-bold" style={{ fontSize: '0.95rem' }}>
-                {call.caller.name}
+                {(!call.caller.name || call.caller.name.toLowerCase() === 'unknown') ? 'Not Mentioned' : call.caller.name}
               </div>
             </div>
             <small className="text-muted d-flex align-items-center gap-1">
@@ -1084,7 +1084,7 @@ const CallRecordsPage = () => {
                   <Row className="g-3">
                     <Col md={4}>
                       <small className="text-muted d-block mb-1">Customer Name</small>
-                      <strong>{selectedCall.caller.name}</strong>
+                      <strong>{(!selectedCall.caller.name || selectedCall.caller.name.toLowerCase() === 'unknown') ? 'Not Mentioned' : selectedCall.caller.name}</strong>
                     </Col>
                     <Col md={4}>
                       <small className="text-muted d-block mb-1">Phone Number</small>
@@ -1138,17 +1138,17 @@ const CallRecordsPage = () => {
                 </Card.Header>
                 <Card.Body>
                   <Row className="g-3">
-                    <Col md={6}>
+                    <Col md={4}>
                       <small className="text-muted d-block mb-1">Call Started</small>
                       <strong className="small">{formatDateTime(selectedCall.call_timing.started_at)}</strong>
                     </Col>
-                    <Col md={6}>
+                    <Col md={4}>
                       <small className="text-muted d-block mb-1">Call Ended</small>
                       <strong className="small">{formatDateTime(selectedCall.call_timing.ended_at)}</strong>
                     </Col>
                     <Col md={4}>
                       <small className="text-muted d-block mb-1">Duration</small>
-                      <Badge bg="info" style={{ fontSize: '0.875rem', padding: '0.5rem 1rem' }}>
+                      <Badge bg="secondary" style={{ fontSize: '0.875rem', padding: '0.5rem 1rem' }}>
                         <IconifyIcon icon="solar:clock-circle-bold" width={14} height={14} className="me-1" />
                         {calculateDuration(
                           selectedCall.call_timing.started_at,
@@ -1156,7 +1156,7 @@ const CallRecordsPage = () => {
                         )}
                       </Badge>
                     </Col>
-                    <Col md={4}>
+                    {/* <Col md={4}>
                       <small className="text-muted d-block mb-1">Call Outcome</small>
                       <Badge bg={selectedCall.call_success ? 'success' : 'danger'} style={{ fontSize: '0.875rem', padding: '0.5rem 1rem' }}>
                         <IconifyIcon
@@ -1179,7 +1179,7 @@ const CallRecordsPage = () => {
                         />
                         {selectedCall.view_status ? 'Reviewed' : 'Needs Review'}
                       </Badge>
-                    </Col>
+                    </Col> */}
                   </Row>
                 </Card.Body>
               </Card>

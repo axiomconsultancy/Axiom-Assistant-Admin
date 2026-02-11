@@ -348,8 +348,8 @@ const ContactSupportPage = () => {
               <IconifyIcon icon="solar:letter-linear" width={48} height={48} className="text-primary mb-3" />
               <h5>Email Support</h5>
               <p className="text-muted small">Send us an email and we will get back to you within 24 hours.</p>
-              <div className="fw-semibold mb-2">support@voiceassistant.com</div>
-              <a href="mailto:support@voiceassistant.com" className="btn btn-outline-primary btn-sm">
+              <div className="fw-semibold mb-2">support@genifem.com</div>
+              <a href="mailto:support@genifem.com" className="btn btn-outline-primary btn-sm">
                 <IconifyIcon icon="solar:letter-linear" width={16} height={16} className="me-1" />
                 Send Email
               </a>
@@ -363,9 +363,9 @@ const ContactSupportPage = () => {
               <IconifyIcon icon="solar:phone-calling-linear" width={48} height={48} className="text-success mb-3" />
               <h5>Phone Support</h5>
               <p className="text-muted small">Call us during business hours for immediate assistance.</p>
-              <div className="fw-semibold mb-1">+1 (310) 707-3291</div>
+              <div className="fw-semibold mb-1">+1 (209) 290-8464</div>
               <div className="text-muted small mb-2">Mon-Fri 9AM-6PM EST</div>
-              <a href="tel:+13107073291" className="btn btn-outline-success btn-sm">
+              <a href="tel:+12092908464" className="btn btn-outline-success btn-sm">
                 <IconifyIcon icon="solar:phone-calling-linear" width={16} height={16} className="me-1" />
                 Call Now
               </a>
@@ -391,7 +391,7 @@ const ContactSupportPage = () => {
                 size="sm"
                 onClick={() =>
                   window.open(
-                    "https://wa.me/13107073291?text=" + encodeURIComponent("Hi! I need support."),
+                    "https://wa.me/12092908464?text=" + encodeURIComponent("Hi! I need support."),
                     "_blank"
                   )
                 }
@@ -404,7 +404,7 @@ const ContactSupportPage = () => {
         </Col>
       </Row>
 
-      <Row className="mb-3">
+      {/* <Row className="mb-3">
         <Col xs={12}>
           <Card>
             <CardHeader>
@@ -422,7 +422,7 @@ const ContactSupportPage = () => {
             </CardBody>
           </Card>
         </Col>
-      </Row>
+      </Row> */}
 
       <Row>
         <Col xs={12}>

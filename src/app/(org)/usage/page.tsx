@@ -211,7 +211,7 @@ const UsageAndBillingPage = () => {
                 <li className="breadcrumb-item active">Usage & Billing</li>
               </ol>
             </div>
-            <div className="d-flex align-items-center gap-3 ms-md-auto">
+            {/* <div className="d-flex align-items-center gap-3 ms-md-auto">
               <Button
                 variant="primary"
                 onClick={() => setUpgradeModalOpen(true)}
@@ -220,7 +220,7 @@ const UsageAndBillingPage = () => {
                 <IconifyIcon icon="solar:rocket-linear" width={18} height={18} />
                 Upgrade Plan
               </Button>
-            </div>
+            </div> */}
           </div>
         </Col>
       </Row>
@@ -305,7 +305,7 @@ const UsageAndBillingPage = () => {
                 <IconifyIcon icon="solar:wallet-linear" width={24} height={24} className="text-warning" />
               </div>
               <h3 className="mb-0">
-                {formatCurrency(usageData.billing.current_amount, usageData.billing.currency)}
+                {/* {formatCurrency(usageData.billing.current_amount, usageData.billing.currency)} */}$0.00
               </h3>
               {usageData.current_period.overage_minutes > 0 && (
                 <Badge bg="warning" className="mt-2 align-self-start">
@@ -504,7 +504,7 @@ const UsageAndBillingPage = () => {
                   <IconifyIcon icon="solar:shop-2-bold" width={20} height={20} className="me-2" />
                   Store-Wise Usage
                 </CardTitle>
-                <div className="d-flex align-items-center gap-2">
+                {/* <div className="d-flex align-items-center gap-2">
                   <label className="mb-0 text-muted small">View:</label>
                   <select
                     className="form-select form-select-sm"
@@ -519,11 +519,11 @@ const UsageAndBillingPage = () => {
                       </option>
                     ))}
                   </select>
-                </div>
+                </div> */}
               </CardHeader>
               <CardBody>
                 <div className="table-responsive">
-                  <table className="table table-hover table-centered mb-0">
+                  <table className="table table-centered mb-0">
                     <thead className="table-light">
                       <tr>
                         <th>Store #</th>
@@ -540,9 +540,6 @@ const UsageAndBillingPage = () => {
                       {mobileStoresData.stores.map((store) => (
                         <tr
                           key={store.location_id}
-                          onClick={() => setSelectedStoreId(store.location_id)}
-                          style={{ cursor: 'pointer' }}
-                          className={selectedStoreId === store.location_id ? 'table-active' : ''}
                         >
                           <td>
                             <span className="fw-medium">{store.store_number || '—'}</span>
