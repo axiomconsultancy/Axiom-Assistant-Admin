@@ -1,5 +1,5 @@
-// src/api/org/support.ts
 import axios from 'axios'
+import { AnalyticsPeriod } from './analytics'
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000/api/v1'
 
@@ -128,8 +128,9 @@ export const supportApi = {
     })
   },
 
-  async getStats(): Promise<SupportTicketStatsResponse> {
+  async getStats(period: AnalyticsPeriod = 'all_time'): Promise<SupportTicketStatsResponse> {
     const response = await axios.get(`${API_BASE}/org/support/tickets/stats/summary`, {
+      params: { period },
       headers: getAuthHeaders()
     })
     return response.data

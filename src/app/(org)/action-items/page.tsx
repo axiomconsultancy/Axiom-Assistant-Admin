@@ -862,23 +862,21 @@ const ActionItemsPage = () => {
         render: (item) => {
           const typeConfig = getTypeConfig(item.type)
           return (
-            <div className="d-flex align-items-center gap-1">
+            <div className="d-flex align-items-center gap-2">
               <div
+                className="rounded-circle d-flex align-items-center justify-content-center"
                 style={{
-                  backgroundColor: typeConfig.bgColor,
-                  color: typeConfig.color,
-                  padding: '0.35rem 0.75rem',
-                  borderRadius: '6px',
-                  fontSize: '0.75rem',
-                  fontWeight: 600,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.4rem'
+                  width: 24,
+                  height: 24,
+                  background: typeConfig.bgColor.replace('0.1', '0.05'),
+                  color: typeConfig.color
                 }}
               >
                 <IconifyIcon icon={typeConfig.icon} width={14} height={14} />
-                {typeConfig.label}
               </div>
+              <span className="fw-semibold" style={{ fontSize: '0.8rem', color: typeConfig.color }}>
+                {typeConfig.label}
+              </span>
             </div>
           )
         }
@@ -1111,21 +1109,21 @@ const ActionItemsPage = () => {
                       {(() => {
                         const typeConfig = getTypeConfig(selectedItem.type)
                         return (
-                          <div
-                            style={{
-                              backgroundColor: typeConfig.bgColor,
-                              color: typeConfig.color,
-                              padding: '0.5rem 1rem',
-                              borderRadius: '8px',
-                              fontSize: '0.875rem',
-                              fontWeight: 600,
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '0.5rem'
-                            }}
-                          >
-                            <IconifyIcon icon={typeConfig.icon} width={18} height={18} />
-                            {typeConfig.label}
+                          <div className="d-flex align-items-center gap-2 mt-1">
+                            <div
+                              className="rounded-circle d-flex align-items-center justify-content-center"
+                              style={{
+                                width: 28,
+                                height: 28,
+                                background: typeConfig.bgColor.replace('0.1', '0.08'),
+                                color: typeConfig.color
+                              }}
+                            >
+                              <IconifyIcon icon={typeConfig.icon} width={16} height={16} />
+                            </div>
+                            <span className="fw-bold" style={{ fontSize: '1rem', color: typeConfig.color }}>
+                              {typeConfig.label}
+                            </span>
                           </div>
                         )
                       })()}

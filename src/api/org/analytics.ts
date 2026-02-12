@@ -11,8 +11,6 @@ export interface TodayOverviewResponse {
   total_duration_seconds: number
   avg_duration: string
   avg_duration_seconds: number
-  success_rate: number
-  failed_calls: number
   unknown_calls: number
 }
 
@@ -25,8 +23,6 @@ export interface TotalOverviewResponse {
   unique_callers: number
   repeat_callers: number
   new_callers: number
-  total_success_rate: number
-  total_failed_calls: number
   total_unknown_calls: number
 }
 
@@ -61,8 +57,6 @@ export interface DashboardOverview {
   total_duration_seconds: number
   avg_duration: string
   avg_duration_seconds: number
-  success_rate: number
-  failed_calls: number
   unknown_calls: number
   unique_callers: number
   repeat_callers: number

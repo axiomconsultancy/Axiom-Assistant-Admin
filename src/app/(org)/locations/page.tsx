@@ -443,9 +443,9 @@ const LocationsPage = () => {
               >
                 <IconifyIcon icon="solar:shop-bold" width={16} height={16} />
               </div>
-              <Badge bg="primary" style={{ fontSize: '0.85rem', padding: '0.4rem 0.75rem', fontWeight: 600 }}>
+              <span className="fw-semibold" style={{ fontSize: '0.95rem', color: '#1976D2' }}>
                 {location.store_number}
-              </Badge>
+              </span>
             </div>
           ) : (
             <span className="text-muted fst-italic">Not set</span>
@@ -455,7 +455,7 @@ const LocationsPage = () => {
       {
         key: 'store_location',
         header: 'Store Address',
-        minWidth: 300,
+        minWidth: 250,
         render: (location) => (
           <div>
             <div className="fw-semibold mb-1" style={{ fontSize: '0.95rem' }}>
@@ -469,27 +469,145 @@ const LocationsPage = () => {
         )
       },
       {
-        key: 'mobile_account',
-        header: 'Mobile App',
-        width: 160,
+        key: 'mobile_status',
+        header: 'Mobile Status',
+        width: 140,
         render: (location) => (
-          <div>
+          <div className="d-flex align-items-center gap-2">
             {location.mobile_account_enabled ? (
-              <div>
-                <Badge bg="success" className="d-flex align-items-center gap-1 mb-1" style={{ width: 'fit-content' }}>
+              <>
+                <div
+                  className="rounded-circle d-flex align-items-center justify-content-center"
+                  style={{
+                    width: 24,
+                    height: 24,
+                    background: '#E8F5E9',
+                    color: '#2E7D32'
+                  }}
+                >
                   <IconifyIcon icon="solar:check-circle-bold" width={14} height={14} />
+                </div>
+                <span className="fw-medium" style={{ fontSize: '0.9rem', color: '#2E7D32' }}>
                   Enabled
-                </Badge>
-                <small className="text-muted d-block">{location.mobile_account_email}</small>
-              </div>
+                </span>
+              </>
             ) : (
-              <Badge bg="secondary" className="d-flex align-items-center gap-1" style={{ width: 'fit-content' }}>
-                <IconifyIcon icon="solar:lock-password-linear" width={14} height={14} />
-              </Badge>
+              <>
+                <div
+                  className="rounded-circle d-flex align-items-center justify-content-center"
+                  style={{
+                    width: 24,
+                    height: 24,
+                    background: '#F5F5F5',
+                    color: '#757575'
+                  }}
+                >
+                  <IconifyIcon icon="solar:lock-password-linear" width={14} height={14} />
+                </div>
+                <span className="text-muted" style={{ fontSize: '0.9rem' }}>
+                  Disabled
+                </span>
+              </>
             )}
           </div>
         )
       },
+      {
+        key: 'store_email',
+        header: 'Store Email',
+        width: 200,
+        render: (location) => (
+          <div>
+            {location.mobile_account_email ? (
+              <div className="d-flex align-items-center gap-2">
+                <IconifyIcon icon="solar:letter-bold" width={16} height={16} className="text-primary" />
+                <span style={{ fontSize: '0.9rem' }} className="text-truncate" title={location.mobile_account_email}>
+                  {location.mobile_account_email}
+                </span>
+              </div>
+            ) : (
+              <span className="text-muted fst-italic" style={{ fontSize: '0.9rem' }}>—</span>
+            )}
+          </div>
+        )
+      },
+      {
+        key: 'last_updated',
+        header: 'Last Updated',
+        width: 180,
+        render: (location) => (
+          <div>
+            <div className="fw-medium mb-1" style={{ fontSize: '0.9rem' }}>
+              {formatDateTime(location.updated_at)}
+            </div>
+            <small className="text-muted d-flex align-items-center gap-1">
+              <IconifyIcon icon="solar:clock-circle-linear" width={14} height={14} />
+              {new Date(location.updated_at).toLocaleTimeString('en-US', {
+                hour: '2-digit',
+                minute: '2-digit'
+              })}
+            </small>
+          </div>
+        )
+      },
+      // {
+      //   key: 'created_by',
+      //   header: 'Created By',
+      //   width: 150,
+      //   render: (location) => (
+      //     <div>
+      //       {location.created_by ? (
+      //         <div className="d-flex align-items-center gap-2">
+      //           <div
+      //             className="rounded-circle d-flex align-items-center justify-content-center"
+      //             style={{
+      //               width: 28,
+      //               height: 28,
+      //               background: '#F3E5F5',
+      //               color: '#7B1FA2'
+      //             }}
+      //           >
+      //             <IconifyIcon icon="solar:user-bold" width={14} height={14} />
+      //           </div>
+      //           <span className="text-truncate" style={{ fontSize: '0.9rem', maxWidth: '100px' }} title={location.created_by}>
+      //             {location.created_by}
+      //           </span>
+      //         </div>
+      //       ) : (
+      //         <span className="text-muted fst-italic">System</span>
+      //       )}
+      //     </div>
+      //   )
+      // },
+      // {
+      //   key: 'updated_by',
+      //   header: 'Updated By',
+      //   width: 150,
+      //   render: (location) => (
+      //     <div>
+      //       {location.updated_by ? (
+      //         <div className="d-flex align-items-center gap-2">
+      //           <div
+      //             className="rounded-circle d-flex align-items-center justify-content-center"
+      //             style={{
+      //               width: 28,
+      //               height: 28,
+      //               background: '#E8F5E9',
+      //               color: '#388E3C'
+      //             }}
+      //           >
+      //             <IconifyIcon icon="solar:user-bold" width={14} height={14} />
+      //           </div>
+      //           <span className="text-truncate" style={{ fontSize: '0.9rem', maxWidth: '100px' }} title={location.updated_by}>
+      //             {location.updated_by}
+      //           </span>
+      //         </div>
+      //       ) : (
+      //         <span className="text-muted fst-italic">—</span>
+      //       )}
+      //     </div>
+      //   )
+      // },
       {
         key: 'actions',
         header: 'Actions',
@@ -553,7 +671,7 @@ const LocationsPage = () => {
   // Filter column visibility based on vertical features
   const finalColumns = useMemo(() => {
     if (showAppEnabler) return columns
-    return columns.filter(col => col.key !== 'mobile_account')
+    return columns.filter(col => col.key !== 'mobile_status' && col.key !== 'store_email')
   }, [columns, showAppEnabler])
 
   if (!isAuthenticated) {
@@ -1010,21 +1128,29 @@ The AI will figure it out automatically!`}
                 <Table striped hover size="sm" className="mb-0">
                   <thead style={{ position: 'sticky', top: 0, background: 'white', zIndex: 1, boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
                     <tr>
-                      <th style={{ width: '150px' }}>Store #</th>
+                      <th style={{ width: '60px', textAlign: 'center' }}>
+                        <Form.Check
+                          type="checkbox"
+                          checked={selectedLocations.size === parsedLocations.length}
+                          onChange={handleToggleAll}
+                          title="Select/Deselect All"
+                        />
+                      </th>
+                      <th style={{ width: '180px' }}>Store #</th>
                       <th>Store Address</th>
                     </tr>
                   </thead>
                   <tbody>
                     {parsedLocations.map((location, idx) => (
                       <tr key={idx} className={selectedLocations.has(idx) ? '' : 'table-secondary'}>
-                        <td className="text-center">
+                        <td className="text-center align-middle">
                           <Form.Check
                             type="checkbox"
                             checked={selectedLocations.has(idx)}
                             onChange={() => handleToggleLocation(idx)}
                           />
                         </td>
-                        <td>
+                        <td className="align-middle">
                           <Form.Control
                             size="sm"
                             type="text"
@@ -1035,7 +1161,7 @@ The AI will figure it out automatically!`}
                             style={{ borderRadius: '6px' }}
                           />
                         </td>
-                        <td>
+                        <td className="align-middle">
                           <Form.Control
                             size="sm"
                             as="textarea"

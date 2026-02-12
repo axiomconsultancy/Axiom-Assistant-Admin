@@ -651,14 +651,22 @@ const ComplaintsPage = () => {
               </div>
             )}
             {complaint.store.store_number && (
-              <Badge
-                bg="light"
-                text="dark"
-                className="border"
-                style={{ fontSize: '0.75rem' }}
-              >
-                Store #{complaint.store.store_number}
-              </Badge>
+              <div className="d-flex align-items-center gap-2 mt-1">
+                <div
+                  className="rounded-circle d-flex align-items-center justify-content-center"
+                  style={{
+                    width: 20,
+                    height: 20,
+                    background: '#E3F2FD',
+                    color: '#1976D2'
+                  }}
+                >
+                  <IconifyIcon icon="solar:shop-bold" width={12} height={12} />
+                </div>
+                <span style={{ fontSize: '0.85rem', color: '#1976D2', fontWeight: 600 }}>
+                  Store #{complaint.store.store_number}
+                </span>
+              </div>
             )}
             {!complaint.store.store_number && !complaint.store.store_location && (
               <span className="text-muted fst-italic">Not specified</span>
@@ -674,9 +682,9 @@ const ComplaintsPage = () => {
           <div>
             <div className="fw-semibold mb-1">{complaint.complaint_type || 'General Complaint'}</div>
             {complaint.receipt_status !== 'unknown' && (
-              <Badge bg="info" className="text-capitalize" style={{ fontSize: '0.7rem' }}>
-                Receipt: {complaint.receipt_status}
-              </Badge>
+              <small className="text-muted" style={{ fontSize: '0.8rem' }}>
+                Receipt: <span className="text-capitalize">{complaint.receipt_status}</span>
+              </small>
             )}
           </div>
         )
@@ -700,14 +708,33 @@ const ComplaintsPage = () => {
         header: 'Priority',
         width: 120,
         align: 'left',
-        render: (complaint) => (
-          <Badge
-            bg={getSeverityBadgeColor(complaint.complaint_severity)}
-            style={{ fontSize: '0.75rem', fontWeight: 600 }}
-          >
-            {getSeverityLabel(complaint.complaint_severity)}
-          </Badge>
-        )
+        render: (complaint) => {
+          const severityConfig = {
+            critical: { bg: '#FFEBEE', color: '#C62828', icon: 'solar:danger-triangle-bold', label: 'URGENT' },
+            high: { bg: '#FFF3E0', color: '#F57C00', icon: 'solar:danger-bold', label: 'HIGH' },
+            medium: { bg: '#E1F5FE', color: '#0288D1', icon: 'solar:info-circle-bold', label: 'MEDIUM' },
+            low: { bg: '#F5F5F5', color: '#757575', icon: 'solar:check-circle-bold', label: 'LOW' }
+          }[complaint.complaint_severity || 'low'] || { bg: '#F5F5F5', color: '#757575', icon: 'solar:question-circle-bold', label: 'N/A' }
+
+          return (
+            <div className="d-flex align-items-center gap-2">
+              <div
+                className="rounded-circle d-flex align-items-center justify-content-center"
+                style={{
+                  width: 24,
+                  height: 24,
+                  background: severityConfig.bg,
+                  color: severityConfig.color
+                }}
+              >
+                <IconifyIcon icon={severityConfig.icon} width={14} height={14} />
+              </div>
+              <span className="fw-semibold" style={{ fontSize: '0.85rem', color: severityConfig.color }}>
+                {severityConfig.label}
+              </span>
+            </div>
+          )
+        }
       },
       {
         key: 'status',
@@ -982,9 +1009,18 @@ const ComplaintsPage = () => {
 
                     <div className="d-flex align-items-center gap-2">
                       {selectedLocationIds.length > 0 && (
-                        <Badge bg="primary" pill>
+                        <div
+                          className="rounded-circle d-flex align-items-center justify-content-center fw-bold"
+                          style={{
+                            width: 20,
+                            height: 20,
+                            backgroundColor: '#1976D2',
+                            color: '#fff',
+                            fontSize: '0.7rem'
+                          }}
+                        >
                           {selectedLocationIds.length}
-                        </Badge>
+                        </div>
                       )}
                       <IconifyIcon
                         icon={
@@ -1130,12 +1166,9 @@ const ComplaintsPage = () => {
                 </div>
                 <div className="text-end">
                   <small className="text-muted d-block mb-1">Priority Level</small>
-                  <Badge
-                    bg={getSeverityBadgeColor(selectedComplaint.complaint_severity)}
-                    style={{ fontSize: '0.875rem', padding: '0.5rem 1rem' }}
-                  >
+                  <strong style={{ fontSize: '0.95rem', color: getSeverityBadgeColor(selectedComplaint.complaint_severity) === 'danger' ? '#C62828' : getSeverityBadgeColor(selectedComplaint.complaint_severity) === 'warning' ? '#F57C00' : getSeverityBadgeColor(selectedComplaint.complaint_severity) === 'info' ? '#0288D1' : '#757575' }}>
                     {getSeverityLabel(selectedComplaint.complaint_severity)}
-                  </Badge>
+                  </strong>
                 </div>
               </div>
 
@@ -1163,9 +1196,7 @@ const ComplaintsPage = () => {
                     </Col>
                     <Col md={6}>
                       <small className="text-muted d-block mb-1">Callback Number Verified</small>
-                      <Badge bg={selectedComplaint.customer.callback_phone_confirmed ? 'success' : 'secondary'}>
-                        {selectedComplaint.customer.callback_phone_confirmed ? 'Yes' : 'No'}
-                      </Badge>
+                      <strong>{selectedComplaint.customer.callback_phone_confirmed ? 'Yes' : 'No'}</strong>
                     </Col>
                     {selectedComplaint.customer.mailing_address && (
                       <Col xs={12}>
@@ -1196,9 +1227,7 @@ const ComplaintsPage = () => {
                     {selectedComplaint.store.store_location && (
                       <Col md={6}>
                         <small className="text-muted d-block mb-1">Location</small>
-                        <Badge bg="secondary" className="px-3 py-2" style={{ fontSize: '0.875rem' }}>
-                          {selectedComplaint.store.store_location}
-                        </Badge>
+                        <strong style={{ fontSize: '0.95rem' }}>{selectedComplaint.store.store_location}</strong>
                       </Col>
                     )}
                     {selectedComplaint.store.store_phone && (
@@ -1221,9 +1250,7 @@ const ComplaintsPage = () => {
                     )}
                     <Col md={6}>
                       <small className="text-muted d-block mb-1">Customer Currently at Store</small>
-                      <Badge bg={selectedComplaint.store.customer_at_store ? 'success' : 'secondary'}>
-                        {selectedComplaint.store.customer_at_store ? 'Yes' : 'No'}
-                      </Badge>
+                      <strong>{selectedComplaint.store.customer_at_store ? 'Yes' : 'No'}</strong>
                     </Col>
                   </Row>
                 </Card.Body>
@@ -1285,9 +1312,7 @@ const ComplaintsPage = () => {
                     )}
                     <Col md={6}>
                       <small className="text-muted d-block mb-1">Immediate Replacement</small>
-                      <Badge bg={selectedComplaint.resolution.immediate_replacement_offered ? 'success' : 'secondary'}>
-                        {selectedComplaint.resolution.immediate_replacement_offered ? 'Offered' : 'Not Offered'}
-                      </Badge>
+                      <strong>{selectedComplaint.resolution.immediate_replacement_offered ? 'Offered' : 'Not Offered'}</strong>
                     </Col>
                     {selectedComplaint.resolution.replacement_details && (
                       <Col xs={12}>
@@ -1448,9 +1473,12 @@ const ComplaintsPage = () => {
                       {selectedCallLog.store_location && (
                         <Col md={6}>
                           <small className="text-muted d-block mb-1">Location</small>
-                          <Badge bg="secondary" className="px-3 py-2" style={{ fontSize: '0.875rem' }}>
-                            {selectedCallLog.store_location}
-                          </Badge>
+                          <div className="d-flex align-items-center gap-2">
+                            <div className="rounded-circle d-flex align-items-center justify-content-center" style={{ width: 24, height: 24, background: '#F5F5F5', color: '#616161' }}>
+                              <IconifyIcon icon="solar:shop-bold" width={14} height={14} />
+                            </div>
+                            <strong style={{ fontSize: '0.875rem' }}>{selectedCallLog.store_location}</strong>
+                          </div>
                         </Col>
                       )}
                     </Row>
@@ -1478,24 +1506,39 @@ const ComplaintsPage = () => {
                     </Col>
                     <Col md={4}>
                       <small className="text-muted d-block mb-1">Duration</small>
-                      <Badge bg="info" style={{ fontSize: '0.875rem', padding: '0.5rem 1rem' }}>
-                        {calculateDuration(
-                          selectedCallLog.call_timing.started_at,
-                          selectedCallLog.call_timing.ended_at
-                        )}
-                      </Badge>
+                      <div className="d-flex align-items-center gap-2 py-1 px-2 rounded border" style={{ width: 'fit-content' }}>
+                        <div className="rounded-circle d-flex align-items-center justify-content-center" style={{ width: 20, height: 20, background: '#E1F5FE', color: '#0288D1' }}>
+                          <IconifyIcon icon="solar:clock-circle-bold" width={12} height={12} />
+                        </div>
+                        <strong style={{ fontSize: '0.875rem', color: '#0288D1' }}>
+                          {calculateDuration(
+                            selectedCallLog.call_timing.started_at,
+                            selectedCallLog.call_timing.ended_at
+                          )}
+                        </strong>
+                      </div>
                     </Col>
                     <Col md={4}>
                       <small className="text-muted d-block mb-1">Call Status</small>
-                      <Badge bg={selectedCallLog.call_success ? 'success' : 'danger'} style={{ fontSize: '0.875rem', padding: '0.5rem 1rem' }}>
-                        {selectedCallLog.call_success ? 'Successful' : 'Failed'}
-                      </Badge>
+                      <div className="d-flex align-items-center gap-2 py-1 px-2 rounded border" style={{ width: 'fit-content' }}>
+                        <div className="rounded-circle d-flex align-items-center justify-content-center" style={{ width: 20, height: 20, background: selectedCallLog.call_success ? '#E8F5E9' : '#FFEBEE', color: selectedCallLog.call_success ? '#2E7D32' : '#C62828' }}>
+                          <IconifyIcon icon={selectedCallLog.call_success ? 'solar:check-circle-bold' : 'solar:close-circle-bold'} width={12} height={12} />
+                        </div>
+                        <strong style={{ fontSize: '0.875rem', color: selectedCallLog.call_success ? '#2E7D32' : '#C62828' }}>
+                          {selectedCallLog.call_success ? 'Successful' : 'Failed'}
+                        </strong>
+                      </div>
                     </Col>
                     <Col md={4}>
                       <small className="text-muted d-block mb-1">Read Status</small>
-                      <Badge bg={selectedCallLog.view_status ? 'success' : 'warning'} style={{ fontSize: '0.875rem', padding: '0.5rem 1rem' }}>
-                        {selectedCallLog.view_status ? 'Read' : 'Unread'}
-                      </Badge>
+                      <div className="d-flex align-items-center gap-2 py-1 px-2 rounded border" style={{ width: 'fit-content' }}>
+                        <div className="rounded-circle d-flex align-items-center justify-content-center" style={{ width: 20, height: 20, background: selectedCallLog.view_status ? '#E8F5E9' : '#FFF3E0', color: selectedCallLog.view_status ? '#2E7D32' : '#F57C00' }}>
+                          <IconifyIcon icon={selectedCallLog.view_status ? 'solar:eye-bold' : 'solar:eye-closed-bold'} width={12} height={12} />
+                        </div>
+                        <strong style={{ fontSize: '0.875rem', color: selectedCallLog.view_status ? '#2E7D32' : '#F57C00' }}>
+                          {selectedCallLog.view_status ? 'Read' : 'Unread'}
+                        </strong>
+                      </div>
                     </Col>
                   </Row>
                 </Card.Body>

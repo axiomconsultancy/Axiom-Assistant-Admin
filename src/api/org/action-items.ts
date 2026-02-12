@@ -1,5 +1,5 @@
-// src/api/org/action-items.ts
 import axios from 'axios'
+import { AnalyticsPeriod } from './analytics'
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000/api/v1'
 
@@ -66,6 +66,9 @@ export interface UpdateActionItemRequest {
 
 export interface ActionItemStatsResponse {
   total_items: number
+  urgent_items: number
+  resolved_tasks: number
+  pending_tasks: number
   by_status: Record<string, number>
   by_urgency: Record<string, number>
   org_id: string
@@ -117,8 +120,9 @@ export const actionItemsApi = {
     })
   },
 
-  async getStats(): Promise<ActionItemStatsResponse> {
+  async getStats(period: AnalyticsPeriod = 'all_time'): Promise<ActionItemStatsResponse> {
     const response = await axios.get(`${API_BASE}/org/action-items/stats/summary`, {
+      params: { period },
       headers: getAuthHeaders()
     })
     return response.data

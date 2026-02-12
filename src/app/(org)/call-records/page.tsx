@@ -545,14 +545,22 @@ const CallRecordsPage = () => {
               </div>
             )}
             {call.store_number && (
-              <Badge
-                bg="light"
-                text="dark"
-                className="border"
-                style={{ fontSize: '0.75rem' }}
-              >
-                Store #{call.store_number}
-              </Badge>
+              <div className="d-flex align-items-center gap-2 mt-1">
+                <div
+                  className="rounded-circle d-flex align-items-center justify-content-center"
+                  style={{
+                    width: 20,
+                    height: 20,
+                    background: '#E3F2FD',
+                    color: '#1976D2'
+                  }}
+                >
+                  <IconifyIcon icon="solar:shop-bold" width={12} height={12} />
+                </div>
+                <span style={{ fontSize: '0.85rem', color: '#1976D2', fontWeight: 600 }}>
+                  Store #{call.store_number}
+                </span>
+              </div>
             )}
             {!call.store_number && !call.store_location && (
               <span className="text-muted fst-italic">Not specified</span>
@@ -570,14 +578,12 @@ const CallRecordsPage = () => {
               {formatDateTime(call.call_timing.started_at)}
             </div>
             <div className="d-flex align-items-center gap-2">
-              <Badge
-                bg="info"
-                className="d-flex align-items-center gap-1"
-                style={{ fontSize: '0.7rem', padding: '0.35rem 0.6rem' }}
-              >
-                <IconifyIcon icon="solar:clock-circle-bold" width={12} height={12} />
-                {calculateDuration(call.call_timing.started_at, call.call_timing.ended_at)}
-              </Badge>
+              <div className="d-flex align-items-center gap-1">
+                <IconifyIcon icon="solar:clock-circle-bold" width={14} height={14} className="text-info" />
+                <span style={{ fontSize: '0.85rem', color: '#0288D1', fontWeight: 500 }}>
+                  {calculateDuration(call.call_timing.started_at, call.call_timing.ended_at)}
+                </span>
+              </div>
               <small className="text-muted">{formatTimeAgo(call.call_timing.started_at)}</small>
             </div>
           </div>
@@ -907,9 +913,18 @@ const CallRecordsPage = () => {
 
                     <div className="d-flex align-items-center gap-2">
                       {selectedLocationIds.length > 0 && (
-                        <Badge bg="primary" pill>
+                        <div
+                          className="rounded-circle d-flex align-items-center justify-content-center fw-bold"
+                          style={{
+                            width: 20,
+                            height: 20,
+                            backgroundColor: '#1976D2',
+                            color: '#fff',
+                            fontSize: '0.7rem'
+                          }}
+                        >
                           {selectedLocationIds.length}
-                        </Badge>
+                        </div>
                       )}
                       <IconifyIcon
                         icon={
@@ -1118,9 +1133,7 @@ const CallRecordsPage = () => {
                       {selectedCall.store_location && (
                         <Col md={6}>
                           <small className="text-muted d-block mb-1">Location Name</small>
-                          <Badge bg="secondary" className="px-3 py-2" style={{ fontSize: '0.875rem' }}>
-                            {selectedCall.store_location}
-                          </Badge>
+                          <strong style={{ fontSize: '0.95rem' }}>{selectedCall.store_location}</strong>
                         </Col>
                       )}
                     </Row>
@@ -1148,38 +1161,62 @@ const CallRecordsPage = () => {
                     </Col>
                     <Col md={4}>
                       <small className="text-muted d-block mb-1">Duration</small>
-                      <Badge bg="secondary" style={{ fontSize: '0.875rem', padding: '0.5rem 1rem' }}>
-                        <IconifyIcon icon="solar:clock-circle-bold" width={14} height={14} className="me-1" />
-                        {calculateDuration(
-                          selectedCall.call_timing.started_at,
-                          selectedCall.call_timing.ended_at
-                        )}
-                      </Badge>
+                      <div className="d-flex align-items-center gap-1">
+                        <IconifyIcon icon="solar:clock-circle-bold" width={16} height={16} className="text-info" />
+                        <strong style={{ fontSize: '0.95rem', color: '#0288D1' }}>
+                          {calculateDuration(
+                            selectedCall.call_timing.started_at,
+                            selectedCall.call_timing.ended_at
+                          )}
+                        </strong>
+                      </div>
                     </Col>
-                    {/* <Col md={4}>
+                    <Col md={4}>
                       <small className="text-muted d-block mb-1">Call Outcome</small>
-                      <Badge bg={selectedCall.call_success ? 'success' : 'danger'} style={{ fontSize: '0.875rem', padding: '0.5rem 1rem' }}>
-                        <IconifyIcon
-                          icon={selectedCall.call_success ? 'solar:check-circle-bold' : 'solar:close-circle-bold'}
-                          width={14}
-                          height={14}
-                          className="me-1"
-                        />
-                        {selectedCall.call_success ? 'Completed' : 'Incomplete'}
-                      </Badge>
+                      <div className="d-flex align-items-center gap-2 px-2 py-1 rounded" style={{ border: '1px solid #e0e0e0', width: 'fit-content' }}>
+                        <div
+                          className="rounded-circle d-flex align-items-center justify-content-center"
+                          style={{
+                            width: 24,
+                            height: 24,
+                            background: selectedCall.call_success ? '#E8F5E9' : '#FFEBEE',
+                            color: selectedCall.call_success ? '#2E7D32' : '#C62828'
+                          }}
+                        >
+                          <IconifyIcon
+                            icon={selectedCall.call_success ? 'solar:check-circle-bold' : 'solar:close-circle-bold'}
+                            width={14}
+                            height={14}
+                          />
+                        </div>
+                        <span className="fw-semibold" style={{ fontSize: '0.85rem', color: selectedCall.call_success ? '#2E7D32' : '#C62828' }}>
+                          {selectedCall.call_success ? 'Completed' : 'Incomplete'}
+                        </span>
+                      </div>
                     </Col>
                     <Col md={4}>
                       <small className="text-muted d-block mb-1">Review Status</small>
-                      <Badge bg={selectedCall.view_status ? 'success' : 'warning'} style={{ fontSize: '0.875rem', padding: '0.5rem 1rem' }}>
-                        <IconifyIcon
-                          icon={selectedCall.view_status ? 'solar:eye-bold' : 'solar:eye-closed-bold'}
-                          width={14}
-                          height={14}
-                          className="me-1"
-                        />
-                        {selectedCall.view_status ? 'Reviewed' : 'Needs Review'}
-                      </Badge>
-                    </Col> */}
+                      <div className="d-flex align-items-center gap-2 px-2 py-1 rounded" style={{ border: '1px solid #e0e0e0', width: 'fit-content' }}>
+                        <div
+                          className="rounded-circle d-flex align-items-center justify-content-center"
+                          style={{
+                            width: 24,
+                            height: 24,
+                            background: selectedCall.view_status ? '#E8F5E9' : '#FFF3E0',
+                            color: selectedCall.view_status ? '#2E7D32' : '#F57C00'
+                          }}
+                        >
+                          <IconifyIcon
+                            icon={selectedCall.view_status ? 'solar:eye-bold' : 'solar:eye-closed-bold'}
+                            width={14}
+                            height={14}
+                          />
+                        </div>
+                        <span className="fw-semibold" style={{ fontSize: '0.85rem', color: selectedCall.view_status ? '#2E7D32' : '#F57C00' }}>
+                          {selectedCall.view_status ? 'Reviewed' : 'Needs Review'}
+                        </span>
+                      </div>
+                    </Col>
                   </Row>
                 </Card.Body>
               </Card>

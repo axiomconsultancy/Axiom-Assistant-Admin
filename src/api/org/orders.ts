@@ -1,5 +1,5 @@
-// src/api/org/orders.ts
 import axios from 'axios'
+import { AnalyticsPeriod } from './analytics'
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000/api/v1'
 
@@ -119,8 +119,9 @@ export const ordersApi = {
     })
   },
 
-  async getStats(): Promise<OrderStatsResponse> {
+  async getStats(period: AnalyticsPeriod = 'all_time'): Promise<OrderStatsResponse> {
     const response = await axios.get(`${API_BASE}/org/orders/stats/summary`, {
+      params: { period },
       headers: getAuthHeaders()
     })
     return response.data

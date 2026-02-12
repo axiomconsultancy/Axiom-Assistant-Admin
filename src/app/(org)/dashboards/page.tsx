@@ -36,6 +36,21 @@ const PERIOD_OPTIONS: PeriodOption[] = [
   { value: 'all_time', label: 'All Time' },
 ]
 
+// Custom styles for the dashboard
+const CustomStyles = () => (
+  <style>{`
+    .transition-all { transition: all 0.2s ease-in-out; }
+    .hover-shadow:hover { 
+      transform: translateY(-4px);
+      box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.1) !important;
+    }
+    .uppercase { text-transform: uppercase; }
+    .tracking-wider { letter-spacing: 0.05em; }
+    .font-semibold { font-weight: 600; }
+    .font-bold { font-weight: 700; }
+  `}</style>
+)
+
 const DashboardPage = () => {
   const [period, setPeriod] = useState<AnalyticsPeriod>('last_7_days')
   const [dashboard, setDashboard] = useState<DashboardResponse | null>(null)
@@ -58,12 +73,12 @@ const DashboardPage = () => {
       const [dashboardData, actionData, appointmentData, orderData, userData, supportData, complaintsData] =
         await Promise.all([
           analyticsApi.getDashboard(period),
-          actionItemsApi.getStats(),
-          appointmentsApi.getStats(),
-          ordersApi.getStats(),
+          actionItemsApi.getStats(period),
+          appointmentsApi.getStats(period),
+          ordersApi.getStats(period),
           orgUsersApi.getStats(),
-          supportApi.getStats(),
-          complaintsApi.getStats(),
+          supportApi.getStats(period),
+          complaintsApi.getStats(period),
         ])
 
 
@@ -76,133 +91,8 @@ const DashboardPage = () => {
       setComplaintsStats(complaintsData)
 
       // Fetch store comparison data
-      try {
-        const storeCompData = await analyticsApi.getStoreComparison(period)
-        setStoreComparison(storeCompData)
-      } catch (err: any) {
-        // If endpoint doesn't exist yet, use mock data for demonstration
-        console.warn('Store comparison endpoint not available, using mock data:', err.message)
-
-        // Mock data for demonstration
-        const mockStoreData: StoreComparisonResponse = {
-          period: period,
-          total_calls: dashboardData.overview.total_calls,
-          stores: [
-            {
-              location_id: '1',
-              store_location: 'Downtown Store',
-              store_number: '001',
-              call_count: Math.floor(dashboardData.overview.total_calls * 0.18),
-              percentage_of_total: 18,
-              avg_duration: '3m 45s',
-              avg_duration_seconds: 225,
-              success_rate: 94.5,
-              trend: 'up'
-            },
-            {
-              location_id: '2',
-              store_location: 'Mall Location',
-              store_number: '002',
-              call_count: Math.floor(dashboardData.overview.total_calls * 0.15),
-              percentage_of_total: 15,
-              avg_duration: '4m 12s',
-              avg_duration_seconds: 252,
-              success_rate: 91.2,
-              trend: 'stable'
-            },
-            {
-              location_id: '3',
-              store_location: 'Airport Branch',
-              store_number: '003',
-              call_count: Math.floor(dashboardData.overview.total_calls * 0.12),
-              percentage_of_total: 12,
-              avg_duration: '2m 58s',
-              avg_duration_seconds: 178,
-              success_rate: 96.8,
-              trend: 'up'
-            },
-            {
-              location_id: '4',
-              store_location: 'Suburban Center',
-              store_number: '004',
-              call_count: Math.floor(dashboardData.overview.total_calls * 0.11),
-              percentage_of_total: 11,
-              avg_duration: '3m 22s',
-              avg_duration_seconds: 202,
-              success_rate: 89.5,
-              trend: 'down'
-            },
-            {
-              location_id: '5',
-              store_location: 'Main Street',
-              store_number: '005',
-              call_count: Math.floor(dashboardData.overview.total_calls * 0.10),
-              percentage_of_total: 10,
-              avg_duration: '3m 55s',
-              avg_duration_seconds: 235,
-              success_rate: 92.3,
-              trend: 'stable'
-            },
-            {
-              location_id: '6',
-              store_location: 'Westside Plaza',
-              store_number: '006',
-              call_count: Math.floor(dashboardData.overview.total_calls * 0.09),
-              percentage_of_total: 9,
-              avg_duration: '4m 05s',
-              avg_duration_seconds: 245,
-              success_rate: 88.7,
-              trend: 'up'
-            },
-            {
-              location_id: '7',
-              store_location: 'Eastside Market',
-              store_number: '007',
-              call_count: Math.floor(dashboardData.overview.total_calls * 0.08),
-              percentage_of_total: 8,
-              avg_duration: '3m 18s',
-              avg_duration_seconds: 198,
-              success_rate: 93.1,
-              trend: 'stable'
-            },
-            {
-              location_id: '8',
-              store_location: 'North District',
-              store_number: '008',
-              call_count: Math.floor(dashboardData.overview.total_calls * 0.07),
-              percentage_of_total: 7,
-              avg_duration: '3m 42s',
-              avg_duration_seconds: 222,
-              success_rate: 90.4,
-              trend: 'up'
-            },
-            {
-              location_id: '9',
-              store_location: 'South Bay',
-              store_number: '009',
-              call_count: Math.floor(dashboardData.overview.total_calls * 0.06),
-              percentage_of_total: 6,
-              avg_duration: '4m 28s',
-              avg_duration_seconds: 268,
-              success_rate: 87.9,
-              trend: 'down'
-            },
-            {
-              location_id: '10',
-              store_location: 'Central Station',
-              store_number: '010',
-              call_count: Math.floor(dashboardData.overview.total_calls * 0.04),
-              percentage_of_total: 4,
-              avg_duration: '3m 35s',
-              avg_duration_seconds: 215,
-              success_rate: 91.8,
-              trend: 'stable'
-            }
-          ]
-        }
-
-        setStoreComparison(mockStoreData)
-      }
+      const storeCompData = await analyticsApi.getStoreComparison(period)
+      setStoreComparison(storeCompData)
 
     } catch (err: any) {
       console.error('Error loading dashboard:', err)
@@ -244,6 +134,11 @@ const DashboardPage = () => {
     return [...known, otherStore];
   }, [storeComparison]);
 
+  const hotStore = useMemo(() => {
+    if (!processedStores || processedStores.length === 0) return null;
+    return [...processedStores].sort((a, b) => b.call_count - a.call_count)[0];
+  }, [processedStores]);
+
   // Calls Over Time Chart
   const callsOverTimeChart: ApexOptions = useMemo(() => ({
     chart: {
@@ -284,6 +179,67 @@ const DashboardPage = () => {
       x: { format: 'dd MMM yyyy' }
     }
   }), [dashboard])
+
+  const storeSuccessRatesChart: ApexOptions = useMemo(() => {
+    const stores = processedStores
+    const topStores = stores
+      .sort((a, b) => b.call_count - a.call_count)
+      .slice(0, 10)
+
+    return {
+      chart: {
+        height: 320,
+        type: 'bar',
+        toolbar: { show: false }
+      },
+      plotOptions: {
+        bar: {
+          horizontal: false,
+          columnWidth: '60%',
+          borderRadius: 4,
+          dataLabels: {
+            position: 'top'
+          }
+        }
+      },
+      dataLabels: {
+        enabled: true,
+        formatter: (val: number) => `${val.toFixed(1)}%`,
+        offsetY: -20,
+        style: {
+          fontSize: '11px',
+          colors: ['#304758']
+        }
+      },
+      series: [{
+        name: 'Success Rate',
+        data: topStores.map(s => s.success_rate)
+      }],
+      xaxis: {
+        categories: topStores.map(s => s.store_location?.substring(0, 15) || `Store ${s.store_number || 'N/A'}`),
+        labels: {
+          rotate: -45,
+          style: {
+            fontSize: '10px'
+          }
+        }
+      },
+      yaxis: {
+        title: { text: 'Success Rate (%)' },
+        max: 100,
+        labels: {
+          formatter: (val: number) => `${val.toFixed(0)}%`
+        }
+      },
+      colors: ['#1abc9c'],
+      grid: { borderColor: '#f1f3fa' },
+      tooltip: {
+        y: {
+          formatter: (val: number) => `${val.toFixed(1)}%`
+        }
+      }
+    }
+  }, [storeComparison])
 
   // Duration Distribution Chart
   const durationDistChart: ApexOptions = useMemo(() => {
@@ -405,67 +361,6 @@ const DashboardPage = () => {
     }
   }, [storeComparison])
 
-  // Store Success Rates Chart
-  const storeSuccessRatesChart: ApexOptions = useMemo(() => {
-    const stores = processedStores
-    const topStores = stores
-      .sort((a, b) => b.call_count - a.call_count)
-      .slice(0, 10)
-
-    return {
-      chart: {
-        height: 320,
-        type: 'bar',
-        toolbar: { show: false }
-      },
-      plotOptions: {
-        bar: {
-          horizontal: false,
-          columnWidth: '60%',
-          borderRadius: 4,
-          dataLabels: {
-            position: 'top'
-          }
-        }
-      },
-      dataLabels: {
-        enabled: true,
-        formatter: (val: number) => `${val.toFixed(1)}%`,
-        offsetY: -20,
-        style: {
-          fontSize: '11px',
-          colors: ['#304758']
-        }
-      },
-      series: [{
-        name: 'Success Rate',
-        data: topStores.map(s => s.success_rate)
-      }],
-      xaxis: {
-        categories: topStores.map(s => s.store_location?.substring(0, 15) || `Store ${s.store_number || 'N/A'}`),
-        labels: {
-          rotate: -45,
-          style: {
-            fontSize: '10px'
-          }
-        }
-      },
-      yaxis: {
-        title: { text: 'Success Rate (%)' },
-        max: 100,
-        labels: {
-          formatter: (val: number) => `${val.toFixed(0)}%`
-        }
-      },
-      colors: ['#1abc9c'],
-      grid: { borderColor: '#f1f3fa' },
-      tooltip: {
-        y: {
-          formatter: (val: number) => `${val.toFixed(1)}%`
-        }
-      }
-    }
-  }, [storeComparison])
 
   // Store Average Duration Chart
   const storeAvgDurationChart: ApexOptions = useMemo(() => {
@@ -523,7 +418,6 @@ const DashboardPage = () => {
     }
   }, [storeComparison])
 
-  // Store Performance Matrix Chart
   const storePerformanceMatrixChart: ApexOptions = useMemo(() => {
     const stores = processedStores
     const topStores = stores
@@ -667,6 +561,30 @@ const DashboardPage = () => {
     }
   }, [userStats])
 
+  // Tasks Status Chart
+  const tasksChart: ApexOptions = useMemo(() => {
+    const statuses = actionStats?.by_status || {}
+    return {
+      chart: {
+        height: 300,
+        type: 'donut'
+      },
+      labels: Object.keys(statuses).map(s => s.charAt(0).toUpperCase() + s.slice(1)),
+      series: Object.values(statuses) as number[],
+      colors: ['#6658dd', '#1abc9c', '#4fc6e1', '#f7b84b', '#f1556c', '#6c757d'],
+      legend: {
+        position: 'bottom'
+      },
+      plotOptions: {
+        pie: {
+          donut: {
+            size: '65%'
+          }
+        }
+      }
+    }
+  }, [actionStats])
+
   if (loading) {
     return (
       <div className="d-flex justify-content-center align-items-center" style={{ minHeight: '400px' }}>
@@ -689,6 +607,7 @@ const DashboardPage = () => {
 
   return (
     <>
+      <CustomStyles />
       {/* Page Title */}
       <Row>
         <Col xs={12}>
@@ -724,32 +643,11 @@ const DashboardPage = () => {
         </Col>
       </Row>
 
-      {/* KPI Cards Row 1 - Call Metrics */}
-      <Row>
-        <Col lg={3} md={6}>
-          <Card className="border-0 shadow-sm">
-            <CardBody>
-              <div className="d-flex align-items-center">
-                <div className="flex-shrink-0">
-                  <div className="avatar-sm rounded bg-primary bg-opacity-10 d-flex align-items-center justify-content-center">
-                    <IconifyIcon icon="solar:phone-calling-bold" className="text-primary" width={24} height={24} />
-                  </div>
-                </div>
-                <div className="flex-grow-1 ms-3">
-                  <p className="text-muted mb-1 small">Total Calls</p>
-                  <h4 className="mb-0">{dashboard?.overview.total_calls.toLocaleString() || 0}</h4>
-                  <small className="text-success">
-                    <IconifyIcon icon="solar:arrow-up-bold" width={12} height={12} /> Active Period
-                  </small>
-                </div>
-              </div>
-            </CardBody>
-          </Card>
-        </Col>
-
-        <Col lg={3} md={6}>
-          <Card className="border-0 shadow-sm">
-            <CardBody>
+      {/* Performance Summary Cards */}
+      <Row className="">
+        <Col md={3}>
+          <Card className="border-0 shadow-sm transition-all hover-shadow">
+            <CardBody className="p-3">
               <div className="d-flex align-items-center">
                 <div className="flex-shrink-0">
                   <div className="avatar-sm rounded bg-success bg-opacity-10 d-flex align-items-center justify-content-center">
@@ -757,39 +655,101 @@ const DashboardPage = () => {
                   </div>
                 </div>
                 <div className="flex-grow-1 ms-3">
-                  <p className="text-muted mb-1 small">Avg Duration</p>
-                  <h4 className="mb-0">{dashboard?.overview.avg_duration || '0s'}</h4>
-                  <small className="text-muted">Per call</small>
+                  <p className="text-muted mb-1 small uppercase tracking-wider font-semibold">Total Duration</p>
+                  <h4 className="mb-0 font-bold">{dashboard?.overview.total_duration || '0s'}</h4>
+                  <small className="text-muted">Accumulated time</small>
                 </div>
               </div>
             </CardBody>
           </Card>
         </Col>
 
+
+
         <Col lg={3} md={6}>
-          <Card className="border-0 shadow-sm">
-            <CardBody>
+          <Card className="border-0 shadow-sm  transition-all hover-shadow">
+            <CardBody className="p-3">
               <div className="d-flex align-items-center">
                 <div className="flex-shrink-0">
-                  <div className="avatar-sm rounded bg-info bg-opacity-10 d-flex align-items-center justify-content-center">
-                    <IconifyIcon icon="solar:chart-bold" className="text-info" width={24} height={24} />
+                  <div className="avatar-sm rounded bg-success bg-opacity-10 d-flex align-items-center justify-content-center">
+                    <IconifyIcon icon="solar:clock-circle-bold" className="text-success" width={24} height={24} />
                   </div>
                 </div>
                 <div className="flex-grow-1 ms-3">
-                  <p className="text-muted mb-1 small">Success Rate</p>
-                  <h4 className="mb-0">{dashboard?.overview.success_rate.toFixed(1) || 0}%</h4>
-                  <small className="text-success">
-                    <IconifyIcon icon="solar:check-circle-bold" width={12} height={12} /> High Performance
-                  </small>
+                  <p className="text-muted mb-1 small uppercase tracking-wider font-semibold">Avg Duration</p>
+                  <h4 className="mb-0 font-bold">{dashboard?.overview.avg_duration || '0s'}</h4>
+                  <small className="text-muted">Per call average</small>
                 </div>
               </div>
             </CardBody>
           </Card>
         </Col>
 
+        <Col md={3}>
+          <Card className="border-0 shadow-sm  transition-all hover-shadow">
+            <CardBody className="p-3">
+              <div className="d-flex align-items-center">
+                <div className="flex-shrink-0">
+                  <div className="avatar-sm rounded bg-info bg-opacity-10 d-flex align-items-center justify-content-center">
+                    <IconifyIcon icon="solar:users-group-rounded-bold" className="text-info" width={24} height={24} />
+                  </div>
+                </div>
+                <div className="flex-grow-1 ms-3">
+                  <p className="text-muted mb-1 small uppercase tracking-wider font-semibold">Team Members</p>
+                  <h4 className="mb-0 font-bold">{userStats?.total_users || 0}</h4>
+                  <small className="text-muted">Active workforce</small>
+                </div>
+              </div>
+            </CardBody>
+          </Card>
+        </Col>
+
+        <Col md={3}>
+          <Card className="border-0 shadow-sm  transition-all hover-shadow">
+            <CardBody className="p-3">
+              <div className="d-flex align-items-center">
+                <div className="flex-shrink-0">
+                  <div className="avatar-sm rounded bg-warning bg-opacity-10 d-flex align-items-center justify-content-center">
+                    <IconifyIcon icon="solar:shield-check-bold" className="text-warning" width={24} height={24} />
+                  </div>
+                </div>
+                <div className="flex-grow-1 ms-3">
+                  <p className="text-muted mb-1 small uppercase tracking-wider font-semibold">Admin Users</p>
+                  <h4 className="mb-0 font-bold">{userStats?.admin_users || 0}</h4>
+                  <small className="text-muted">System managers</small>
+                </div>
+              </div>
+            </CardBody>
+          </Card>
+        </Col>
+      </Row>
+
+      {/* Row 1: Call Metrics */}
+      <Row className="">
         <Col lg={3} md={6}>
-          <Card className="border-0 shadow-sm">
-            <CardBody>
+          <Card className="border-0 shadow-sm  transition-all hover-shadow">
+            <CardBody className="p-3">
+              <div className="d-flex align-items-center">
+                <div className="flex-shrink-0">
+                  <div className="avatar-sm rounded bg-primary bg-opacity-10 d-flex align-items-center justify-content-center">
+                    <IconifyIcon icon="solar:phone-calling-bold" className="text-primary" width={24} height={24} />
+                  </div>
+                </div>
+                <div className="flex-grow-1 ms-3">
+                  <p className="text-muted mb-1 small uppercase tracking-wider font-semibold">Total Calls</p>
+                  <h4 className="mb-0 font-bold">{dashboard?.overview.total_calls.toLocaleString() || 0}</h4>
+                  <small className="text-muted">Over {period.replace('_', ' ')}</small>
+                </div>
+              </div>
+            </CardBody>
+          </Card>
+        </Col>
+
+
+
+        <Col lg={3} md={6}>
+          <Card className="border-0 shadow-sm  transition-all hover-shadow">
+            <CardBody className="p-3">
               <div className="d-flex align-items-center">
                 <div className="flex-shrink-0">
                   <div className="avatar-sm rounded bg-warning bg-opacity-10 d-flex align-items-center justify-content-center">
@@ -797,35 +757,9 @@ const DashboardPage = () => {
                   </div>
                 </div>
                 <div className="flex-grow-1 ms-3">
-                  <p className="text-muted mb-1 small">Unique Callers</p>
-                  <h4 className="mb-0">{dashboard?.overview.unique_callers.toLocaleString() || 0}</h4>
-                  <small className="text-muted">{dashboard?.overview.repeat_callers || 0} repeat</small>
-                </div>
-              </div>
-            </CardBody>
-          </Card>
-        </Col>
-      </Row>
-
-      {/* KPI Cards Row 2 - Enhanced Metrics */}
-      <Row>
-        <Col lg={3} md={6}>
-          <Card className="border-0 shadow-sm">
-            <CardBody>
-              <div className="d-flex align-items-center">
-                <div className="flex-shrink-0">
-                  <div className="avatar-sm rounded bg-danger bg-opacity-10 d-flex align-items-center justify-content-center">
-                    <IconifyIcon icon="solar:hourglass-bold" className="text-danger" width={24} height={24} />
-                  </div>
-                </div>
-                <div className="flex-grow-1 ms-3">
-                  <p className="text-muted mb-1 small">Avg Resolution Time</p>
-                  <h4 className="mb-0">
-                    {actionStats?.total_items > 0
-                      ? `${Math.round((actionStats?.by_status?.completed || 0) / actionStats.total_items * 24)}h`
-                      : 'N/A'}
-                  </h4>
-                  <small className="text-muted">For action items</small>
+                  <p className="text-muted mb-1 small uppercase tracking-wider font-semibold">Unique Callers</p>
+                  <h4 className="mb-0 font-bold">{dashboard?.overview.unique_callers.toLocaleString() || 0}</h4>
+                  <small className="text-muted">{dashboard?.overview.repeat_callers || 0} repeat callers</small>
                 </div>
               </div>
             </CardBody>
@@ -833,58 +767,8 @@ const DashboardPage = () => {
         </Col>
 
         <Col lg={3} md={6}>
-          <Card className="border-0 shadow-sm">
-            <CardBody>
-              <div className="d-flex align-items-center">
-                <div className="flex-shrink-0">
-                  <div className="avatar-sm rounded bg-warning bg-opacity-10 d-flex align-items-center justify-content-center">
-                    <IconifyIcon icon="solar:danger-triangle-bold" className="text-warning" width={24} height={24} />
-                  </div>
-                </div>
-                <div className="flex-grow-1 ms-3">
-                  <p className="text-muted mb-1 small">Open Complaints</p>
-                  <h4 className="mb-0">
-                    {complaintsStats?.by_status?.pending || 0}
-                  </h4>
-                  <small className="text-muted">
-                    {complaintsStats?.total_complaints > 0
-                      ? `${Math.round((complaintsStats.by_status?.pending || 0) / complaintsStats.total_complaints * 100)}%`
-                      : '0%'} of total
-                  </small>
-                </div>
-              </div>
-            </CardBody>
-          </Card>
-        </Col>
-
-        {/* <Col lg={3} md={6}>
-          <Card className="border-0 shadow-sm">
-            <CardBody>
-              <div className="d-flex align-items-center">
-                <div className="flex-shrink-0">
-                  <div className="avatar-sm rounded bg-success bg-opacity-10 d-flex align-items-center justify-content-center">
-                    <IconifyIcon icon="solar:shield-check-bold" className="text-success" width={24} height={24} />
-                  </div>
-                </div>
-                <div className="flex-grow-1 ms-3">
-                  <p className="text-muted mb-1 small">SLA Compliance</p>
-                  <h4 className="mb-0">{dashboard?.overview.success_rate.toFixed(1) || 0}%</h4>
-                  <small className={dashboard?.overview.success_rate >= 90 ? "text-success" : "text-warning"}>
-                    <IconifyIcon
-                      icon={dashboard?.overview.success_rate >= 90 ? "solar:check-circle-bold" : "solar:info-circle-bold"}
-                      width={12}
-                      height={12}
-                    /> {dashboard?.overview.success_rate >= 90 ? 'On Target' : 'Needs Attention'}
-                  </small>
-                </div>
-              </div>
-            </CardBody>
-          </Card>
-        </Col> */}
-
-        <Col lg={3} md={6}>
-          <Card className="border-0 shadow-sm">
-            <CardBody>
+          <Card className="border-0 shadow-sm  transition-all hover-shadow">
+            <CardBody className="p-3">
               <div className="d-flex align-items-center">
                 <div className="flex-shrink-0">
                   <div className="avatar-sm rounded bg-info bg-opacity-10 d-flex align-items-center justify-content-center">
@@ -892,72 +776,154 @@ const DashboardPage = () => {
                   </div>
                 </div>
                 <div className="flex-grow-1 ms-3">
-                  <p className="text-muted mb-1 small">Peak Hour</p>
-                  <h4 className="mb-0">
-                    {dashboard?.hourly_volume.length > 0
+                  <p className="text-muted mb-1 small uppercase tracking-wider font-semibold">Peak Hour</p>
+                  <h4 className="mb-0 font-bold">
+                    {dashboard?.hourly_volume?.length > 0
                       ? `${dashboard.hourly_volume.reduce((max, curr) => curr.count > max.count ? curr : max).hour}:00`
                       : 'N/A'}
                   </h4>
-                  <small className="text-muted">
-                    {dashboard?.hourly_volume.length > 0
-                      ? `${dashboard.hourly_volume.reduce((max, curr) => curr.count > max.count ? curr : max).count} calls`
-                      : 'No data'}
-                  </small>
+                  <small className="text-muted">High volume window</small>
                 </div>
               </div>
             </CardBody>
           </Card>
         </Col>
-        <Col lg={3} md={6}>
-          <Card className="border-0 shadow-sm">
-            <CardBody>
-              <div className="d-flex justify-content-between align-items-start">
-                <div>
-                  <p className="text-muted mb-1 small">Action Items</p>
-                  <h4 className="mb-0">{actionStats?.total_items || 0}</h4>
-                  <Badge bg="danger" className="mt-2">{actionStats?.by_status?.pending || 0} pending</Badge>
+
+        <Col md={3}>
+          <Card className="border-0 shadow-sm  transition-all hover-shadow">
+            <CardBody className="p-3">
+              <div className="d-flex align-items-center">
+                <div className="flex-shrink-0">
+                  <div className="avatar-sm rounded bg-danger bg-opacity-10 d-flex align-items-center justify-content-center">
+                    <IconifyIcon icon="solar:fire-bold" className="text-danger" width={24} height={24} />
+                  </div>
                 </div>
-                <Link href="/action-items" className="btn btn-sm btn-outline-primary">
-                  <IconifyIcon icon="solar:arrow-right-linear" width={16} height={16} />
-                </Link>
+                <div className="flex-grow-1 ms-3">
+                  <p className="text-muted mb-1 small uppercase tracking-wider font-semibold">Hot Store</p>
+                  <h4 className="mb-0 font-bold text-truncate" title={hotStore?.store_location}>
+                    {hotStore?.store_location || 'N/A'}
+                  </h4>
+                  <small className="text-muted">{hotStore?.call_count || 0} calls</small>
+                </div>
               </div>
             </CardBody>
           </Card>
         </Col>
       </Row>
 
-      {/* KPI Cards Row 3 - Business Metrics */}
-      <Row>
-
-
-        {/* <Col lg={3} md={6}>
-          <Card className="border-0 shadow-sm">
-            <CardBody>
-              <div className="d-flex justify-content-between align-items-start">
-                <div>
-                  <p className="text-muted mb-1 small">Appointments</p>
-                  <h4 className="mb-0">{appointmentStats?.total_appointments || 0}</h4>
-                  <Badge bg="success" className="mt-2">{appointmentStats?.upcoming_appointments || 0} upcoming</Badge>
+      {/* Row 2: Complaints */}
+      <Row className="">
+        <Col lg={3} md={6}>
+          <Card className="border-0 shadow-sm  transition-all hover-shadow">
+            <CardBody className="p-3">
+              <div className="d-flex align-items-center">
+                <div className="flex-shrink-0">
+                  <div className="avatar-sm rounded bg-success bg-opacity-10 d-flex align-items-center justify-content-center">
+                    <IconifyIcon icon="solar:check-circle-bold" className="text-success" width={24} height={24} />
+                  </div>
                 </div>
-                <Link href="/appointments" className="btn btn-sm btn-outline-primary">
-                  <IconifyIcon icon="solar:arrow-right-linear" width={16} height={16} />
-                </Link>
+                <div className="flex-grow-1 ms-3">
+                  <p className="text-muted mb-1 small uppercase tracking-wider font-semibold">Resolved Complaints</p>
+                  <h4 className="mb-0 font-bold">{complaintsStats?.resolved_complaints || 0}</h4>
+                  <small className="text-muted">Total processed</small>
+                </div>
               </div>
             </CardBody>
           </Card>
         </Col>
 
         <Col lg={3} md={6}>
-          <Card className="border-0 shadow-sm">
-            <CardBody>
+          <Card className="border-0 shadow-sm  transition-all hover-shadow">
+            <CardBody className="p-3">
+              <div className="d-flex align-items-center">
+                <div className="flex-shrink-0">
+                  <div className="avatar-sm rounded bg-warning bg-opacity-10 d-flex align-items-center justify-content-center">
+                    <IconifyIcon icon="solar:danger-triangle-bold" className="text-warning" width={24} height={24} />
+                  </div>
+                </div>
+                <div className="flex-grow-1 ms-3">
+                  <p className="text-muted mb-1 small uppercase tracking-wider font-semibold">Pending Complaints</p>
+                  <h4 className="mb-0 font-bold">{complaintsStats?.by_status?.pending || 0}</h4>
+                  <small className="text-muted">Awaiting action</small>
+                </div>
+              </div>
+            </CardBody>
+          </Card>
+        </Col>
+
+        <Col lg={3} md={6}>
+          <Card className="border-0 shadow-sm  transition-all hover-shadow">
+            <CardBody className="p-3">
+              <div className="d-flex align-items-center">
+                <div className="flex-shrink-0">
+                  <div className="avatar-sm rounded bg-danger bg-opacity-10 d-flex align-items-center justify-content-center">
+                    <IconifyIcon icon="solar:fire-bold" className="text-danger" width={24} height={24} />
+                  </div>
+                </div>
+                <div className="flex-grow-1 ms-3">
+                  <p className="text-muted mb-1 small uppercase tracking-wider font-semibold">Urgent Complaints</p>
+                  <h4 className="mb-0 font-bold">{complaintsStats?.urgent_complaints || 0}</h4>
+                  <small className="text-danger">High priority</small>
+                </div>
+              </div>
+            </CardBody>
+          </Card>
+        </Col>
+
+        <Col lg={3} md={6}>
+          <Card className="border-0 shadow-sm  transition-all hover-shadow">
+            <CardBody className="p-3">
+              <div className="d-flex align-items-center">
+                <div className="flex-shrink-0">
+                  <div className="avatar-sm rounded bg-info bg-opacity-10 d-flex align-items-center justify-content-center">
+                    <IconifyIcon icon="solar:phone-calling-bold" className="text-info" width={24} height={24} />
+                  </div>
+                </div>
+                <div className="flex-grow-1 ms-3">
+                  <p className="text-muted mb-1 small uppercase tracking-wider font-semibold">Followups Needed</p>
+                  <h4 className="mb-0 font-bold">{complaintsStats?.followups_needed || 0}</h4>
+                  <small className="text-info">Callback requested</small>
+                </div>
+              </div>
+            </CardBody>
+          </Card>
+        </Col>
+      </Row>
+
+      {/* Row 3: Tasks & Services */}
+      <Row className="">
+        <Col lg={3} md={6}>
+          <Card className="border-0 shadow-sm  transition-all hover-shadow">
+            <CardBody className="p-3">
               <div className="d-flex justify-content-between align-items-start">
                 <div>
-                  <p className="text-muted mb-1 small">Total Revenue</p>
-                  <h4 className="mb-0">${orderStats?.total_revenue?.toLocaleString() || 0}</h4>
-                  <Badge bg="info" className="mt-2">{orderStats?.total_orders || 0} orders</Badge>
+                  <p className="text-muted mb-1 small uppercase tracking-wider font-semibold">Tasks</p>
+                  <h4 className="mb-0 font-bold">{actionStats?.total_items || 0}</h4>
+                  <small className="text-muted">
+                    <span className="text-success">{actionStats?.resolved_tasks || 0} resolved</span> • <span className="text-warning">{actionStats?.pending_tasks || 0} pending</span>
+                  </small>
                 </div>
-                <Link href="/orders" className="btn btn-sm btn-outline-primary">
-                  <IconifyIcon icon="solar:arrow-right-linear" width={16} height={16} />
+                <Link href="/action-items" className="avatar-sm rounded bg-primary bg-opacity-10 d-flex align-items-center justify-content-center">
+                  <IconifyIcon icon="solar:checklist-bold" className="text-primary" width={20} height={20} />
+                </Link>
+              </div>
+            </CardBody>
+          </Card>
+        </Col>
+
+        {/* <Col lg={3} md={6}>
+          <Card className="border-0 shadow-sm  transition-all hover-shadow">
+            <CardBody className="p-3">
+              <div className="d-flex justify-content-between align-items-start">
+                <div>
+                  <p className="text-muted mb-1 small uppercase tracking-wider font-semibold">Appointments</p>
+                  <h4 className="mb-0 font-bold">{appointmentStats?.total_appointments || 0}</h4>
+                  <Badge bg="success" className="bg-opacity-10 text-success mt-1">
+                    {appointmentStats?.upcoming_appointments || 0} upcoming
+                  </Badge>
+                </div>
+                <Link href="/appointments" className="avatar-sm rounded bg-success bg-opacity-10 d-flex align-items-center justify-content-center">
+                  <IconifyIcon icon="solar:calendar-date-bold" className="text-success" width={20} height={20} />
                 </Link>
               </div>
             </CardBody>
@@ -965,43 +931,40 @@ const DashboardPage = () => {
         </Col> */}
 
         <Col lg={3} md={6}>
-          <Card className="border-0 shadow-sm">
-            <CardBody>
+          <Card className="border-0 shadow-sm  transition-all hover-shadow">
+            <CardBody className="p-3">
               <div className="d-flex justify-content-between align-items-start">
                 <div>
-                  <p className="text-muted mb-1 small">Complaints</p>
-                  <h4 className="mb-0">{complaintsStats?.total_complaints || 0}</h4>
-
-                  <Badge bg="danger" className="mt-2">
-                    {complaintsStats?.by_status?.open || 0} open
+                  <p className="text-muted mb-1 small uppercase tracking-wider font-semibold">Support Tickets</p>
+                  <h4 className="mb-0 font-bold">{supportStats?.total_tickets || 0}</h4>
+                  <Badge bg="warning" className="bg-opacity-10 text-warning mt-1">
+                    {supportStats?.open_tickets || 0} open
                   </Badge>
                 </div>
-
-                <Link href="/complaints" className="btn btn-sm btn-outline-primary">
-                  <IconifyIcon icon="solar:arrow-right-linear" width={16} height={16} />
+                <Link href="/contact-support" className="avatar-sm rounded bg-warning bg-opacity-10 d-flex align-items-center justify-content-center">
+                  <IconifyIcon icon="solar:list-bold" className="text-warning" width={20} height={20} />
                 </Link>
               </div>
             </CardBody>
           </Card>
         </Col>
 
-
-        <Col lg={3} md={6}>
-          <Card className="border-0 shadow-sm">
-            <CardBody>
+        {/* <Col lg={3} md={6}>
+          <Card className="border-0 shadow-sm  transition-all hover-shadow">
+            <CardBody className="p-3">
               <div className="d-flex justify-content-between align-items-start">
                 <div>
-                  <p className="text-muted mb-1 small">Support Tickets</p>
-                  <h4 className="mb-0">{supportStats?.total_tickets || 0}</h4>
-                  <Badge bg="warning" className="mt-2">{supportStats?.open_tickets || 0} open</Badge>
+                  <p className="text-muted mb-1 small uppercase tracking-wider font-semibold">Total Revenue</p>
+                  <h4 className="mb-0 font-bold">${orderStats?.total_revenue?.toLocaleString() || 0}</h4>
+                  <small className="text-muted">{orderStats?.total_orders || 0} orders</small>
                 </div>
-                <Link href="/contact-support" className="btn btn-sm btn-outline-primary">
-                  <IconifyIcon icon="solar:arrow-right-linear" width={16} height={16} />
+                <Link href="/orders" className="avatar-sm rounded bg-secondary bg-opacity-10 d-flex align-items-center justify-content-center">
+                  <IconifyIcon icon="solar:dollar-minimalistic-bold" className="text-secondary" width={20} height={20} />
                 </Link>
               </div>
             </CardBody>
           </Card>
-        </Col>
+        </Col> */}
       </Row>
 
       {/* Main Charts Row */}
@@ -1093,13 +1056,13 @@ const DashboardPage = () => {
             <CardHeader>
               <CardTitle as="h5" className="mb-0">
                 <IconifyIcon icon="solar:checklist-minimalistic-bold" width={20} height={20} className="me-2" />
-                Action Items Status
+                Task Status Distribution
               </CardTitle>
             </CardHeader>
             <CardBody>
               <ReactApexChart
-                options={actionItemsChart}
-                series={actionItemsChart.series}
+                options={tasksChart}
+                series={tasksChart.series}
                 type="donut"
                 height={300}
               />
@@ -1108,10 +1071,10 @@ const DashboardPage = () => {
         </Col>
       </Row>
 
-      {/* Store Performance Charts Row */}
+      {/* Store Comparison Row */}
       {storeComparison && storeComparison.stores.length > 0 && (
         <Row>
-          <Col lg={4}>
+          {/* <Col lg={4}>
             <Card className="border-0 shadow-sm">
               <CardHeader>
                 <CardTitle as="h5" className="mb-0">
@@ -1128,9 +1091,9 @@ const DashboardPage = () => {
                 />
               </CardBody>
             </Card>
-          </Col>
+          </Col> */}
 
-          <Col lg={4}>
+          <Col lg={6}>
             <Card className="border-0 shadow-sm">
               <CardHeader>
                 <CardTitle as="h5" className="mb-0">
@@ -1148,8 +1111,7 @@ const DashboardPage = () => {
               </CardBody>
             </Card>
           </Col>
-
-          <Col lg={4}>
+          <Col lg={6}>
             <Card className="border-0 shadow-sm">
               <CardHeader>
                 <CardTitle as="h5" className="mb-0">
@@ -1230,51 +1192,6 @@ const DashboardPage = () => {
         </Col>
       </Row> */}
 
-      {/* Performance Summary Cards */}
-      <Row>
-        <Col lg={12}>
-          <Card className="border-0 shadow-sm">
-            <CardHeader>
-              <CardTitle as="h5" className="mb-0">
-                <IconifyIcon icon="solar:chart-square-bold" width={20} height={20} className="me-2" />
-                Performance Summary
-              </CardTitle>
-            </CardHeader>
-            <CardBody>
-              <Row>
-                <Col md={3}>
-                  <div className="text-center p-3 border rounded mb-3">
-                    <IconifyIcon icon="solar:phone-bold" className="text-primary mb-2" width={32} height={32} />
-                    <h6 className="text-muted small mb-1">Failed Calls</h6>
-                    <h4 className="mb-0 text-danger">{dashboard?.overview.failed_calls || 0}</h4>
-                  </div>
-                </Col>
-                <Col md={3}>
-                  <div className="text-center p-3 border rounded mb-3">
-                    <IconifyIcon icon="solar:clock-circle-bold" className="text-success mb-2" width={32} height={32} />
-                    <h6 className="text-muted small mb-1">Total Duration</h6>
-                    <h4 className="mb-0">{dashboard?.overview.total_duration || '0s'}</h4>
-                  </div>
-                </Col>
-                <Col md={3}>
-                  <div className="text-center p-3 border rounded mb-3">
-                    <IconifyIcon icon="solar:users-group-rounded-bold" className="text-info mb-2" width={32} height={32} />
-                    <h6 className="text-muted small mb-1">Team Members</h6>
-                    <h4 className="mb-0">{userStats?.total_users || 0}</h4>
-                  </div>
-                </Col>
-                <Col md={3}>
-                  <div className="text-center p-3 border rounded mb-3">
-                    <IconifyIcon icon="solar:shield-check-bold" className="text-warning mb-2" width={32} height={32} />
-                    <h6 className="text-muted small mb-1">Admin Users</h6>
-                    <h4 className="mb-0">{userStats?.admin_users || 0}</h4>
-                  </div>
-                </Col>
-              </Row>
-            </CardBody>
-          </Card>
-        </Col>
-      </Row>
 
       {/* Quick Actions */}
       {/* <Row>

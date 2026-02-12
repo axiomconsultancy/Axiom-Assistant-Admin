@@ -35,11 +35,14 @@ const ForgotPassword = () => {
         setLoading(true)
         setError(null)
         try {
-            const response = await authApi.forgotPassword(data.email)
+            await authApi.forgotPassword(data.email)
             setSuccess(true)
         } catch (err: any) {
-            // Show generic error to prevent email enumeration
-            setError('An error occurred. Please try again later.')
+            if (err.response?.status === 404) {
+                setError(err.response.data?.detail || 'This email address does not exist in our records.')
+            } else {
+                setError('An error occurred. Please try again later.')
+            }
             console.error('Password reset error:', err)
         } finally {
             setLoading(false)
@@ -76,7 +79,7 @@ const ForgotPassword = () => {
                                                 <div>
                                                     <strong>Email Sent!</strong>
                                                     <p className="mb-0 mt-1">
-                                                        If an account exists for that email, we&apos;ve sent password reset instructions. 
+                                                        If an account exists for that email, we&apos;ve sent password reset instructions.
                                                         Please check your inbox and spam folder.
                                                     </p>
                                                 </div>
@@ -100,9 +103,9 @@ const ForgotPassword = () => {
                                                 />
                                             </div>
                                             <div className="d-grid">
-                                                <button 
-                                                    className="btn btn-primary btn-lg fw-medium" 
-                                                    type="submit" 
+                                                <button
+                                                    className="btn btn-primary btn-lg fw-medium"
+                                                    type="submit"
                                                     disabled={loading}
                                                 >
                                                     {loading ? (

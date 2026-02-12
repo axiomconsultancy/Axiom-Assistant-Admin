@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { AnalyticsPeriod } from './analytics'
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000/api/v1'
 
@@ -89,6 +90,9 @@ export interface UpdateComplaintRequest {
 
 export interface ComplaintStatsResponse {
   total_complaints: number
+  resolved_complaints: number
+  urgent_complaints: number
+  followups_needed: number
   by_status: Record<string, number>
   by_severity: Record<string, number>
   org_id: string
@@ -137,8 +141,9 @@ export const complaintsApi = {
     return response.data
   },
 
-  async getStats(): Promise<ComplaintStatsResponse> {
+  async getStats(period: AnalyticsPeriod = 'all_time'): Promise<ComplaintStatsResponse> {
     const response = await axios.get(`${API_BASE}/org/complaints/stats/summary`, {
+      params: { period },
       headers: getAuthHeaders()
     })
     return response.data

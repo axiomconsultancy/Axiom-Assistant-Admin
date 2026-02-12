@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
-import { Badge, Button, Col, Form, Modal, Row } from 'react-bootstrap'
+import { Badge, Button, Card, Col, Form, Modal, Row } from 'react-bootstrap'
 import Link from 'next/link'
 import { DataTable } from '@/components/table'
 import type { DataTableColumn, DataTableFilterControl } from '@/components/table'
@@ -531,30 +531,100 @@ const UserManagementPage = () => {
       {
         key: 'role_name',
         header: 'Role',
-        width: 130,
+        width: 150,
         render: (user) => (
-          <Badge bg="light" text="dark">{user.role_name}</Badge>
+          <div className="d-flex align-items-center gap-2">
+            <div
+              className="rounded-circle d-flex align-items-center justify-content-center"
+              style={{
+                width: 24,
+                height: 24,
+                background: '#F3E5F5',
+                color: '#7B1FA2'
+              }}
+            >
+              <IconifyIcon icon="solar:user-id-bold" width={14} height={14} />
+            </div>
+            <span className="fw-medium" style={{ fontSize: '0.9rem', color: '#424242' }}>
+              {user.role_name}
+            </span>
+          </div>
         )
       },
       {
         key: 'is_admin',
         header: 'Type',
-        width: 110,
+        width: 120,
         render: (user) => (
-          <Badge bg={user.is_admin ? 'primary' : 'secondary'}>
-            {user.is_admin ? 'Admin' : 'User'}
-          </Badge>
+          <div className="d-flex align-items-center gap-2">
+            {user.is_admin ? (
+              <>
+                <div
+                  className="rounded-circle d-flex align-items-center justify-content-center"
+                  style={{
+                    width: 24,
+                    height: 24,
+                    background: '#E3F2FD',
+                    color: '#1976D2'
+                  }}
+                >
+                  <IconifyIcon icon="solar:shield-user-bold" width={14} height={14} />
+                </div>
+                <span className="fw-medium" style={{ fontSize: '0.9rem', color: '#1976D2' }}>
+                  Admin
+                </span>
+              </>
+            ) : (
+              <>
+                <div
+                  className="rounded-circle d-flex align-items-center justify-content-center"
+                  style={{
+                    width: 24,
+                    height: 24,
+                    background: '#F5F5F5',
+                    color: '#757575'
+                  }}
+                >
+                  <IconifyIcon icon="solar:user-bold" width={14} height={14} />
+                </div>
+                <span className="text-muted" style={{ fontSize: '0.9rem' }}>
+                  User
+                </span>
+              </>
+            )}
+          </div>
         )
       },
       {
         key: 'status',
         header: 'Status',
-        width: 120,
-        render: (user) => (
-          <Badge bg={getStatusVariant(user.status)} className="text-capitalize">
-            {user.status}
-          </Badge>
-        )
+        width: 130,
+        render: (user) => {
+          const statusConfig = {
+            active: { bg: '#E8F5E9', color: '#2E7D32', icon: 'solar:check-circle-bold' },
+            invited: { bg: '#FFF3E0', color: '#F57C00', icon: 'solar:letter-bold' },
+            suspended: { bg: '#FFEBEE', color: '#C62828', icon: 'solar:close-circle-bold' }
+          }[user.status] || { bg: '#F5F5F5', color: '#757575', icon: 'solar:question-circle-bold' }
+
+          return (
+            <div className="d-flex align-items-center gap-2">
+              <div
+                className="rounded-circle d-flex align-items-center justify-content-center"
+                style={{
+                  width: 24,
+                  height: 24,
+                  background: statusConfig.bg,
+                  color: statusConfig.color
+                }}
+              >
+                <IconifyIcon icon={statusConfig.icon} width={14} height={14} />
+              </div>
+              <span className="fw-medium text-capitalize" style={{ fontSize: '0.9rem', color: statusConfig.color }}>
+                {user.status}
+              </span>
+            </div>
+          )
+        }
       },
       {
         key: 'features',
@@ -964,181 +1034,260 @@ const UserManagementPage = () => {
         <Modal.Header closeButton className="border-0 pb-0">
           <Modal.Title className="fw-bold">User Information</Modal.Title>
         </Modal.Header>
-        <Modal.Body>
+        <Modal.Body className="pt-3">
           {selectedUser && (
-            <div>
-              <Row className="g-3 mb-3">
-                {/* <Col md={6}>
-                  <label className="text-muted small">User ID</label>
-                  <div className="fw-medium font-monospace small">{selectedUser.id}</div>
-                </Col> */}
-                <Col md={6}>
-                  <label className="text-muted small">Full Name</label>
-                  <h5 className="mb-0">{selectedUser.name}</h5>
-                </Col>
-                <Col md={6}>
-                  <label className="text-muted small">Status</label>
-                  <div className="d-flex align-items-center gap-2">
-                    {/* Status badge becomes the toggle */}
-                    {selectedUser.status !== 'invited' ? (
-                      <Badge
-                        role="button"
-                        tabIndex={0}
-                        bg={getStatusVariant(selectedUser.status)}
-                        className="text-capitalize d-inline-flex align-items-center gap-2"
-                        style={{ cursor: updatingUserId === selectedUser.id ? 'not-allowed' : 'pointer', userSelect: 'none', opacity: (selectedUser.id === primaryAdminId && selectedUser.id !== (isOrgUser(authUser) ? authUser._id : null)) ? 0.5 : 1, filter: (selectedUser.id === primaryAdminId && selectedUser.id !== (isOrgUser(authUser) ? authUser._id : null)) ? 'grayscale(1)' : 'none' }}
-                        onClick={() => {
-                          if (updatingUserId === selectedUser.id) return
-                          const authUserId = isOrgUser(authUser) ? authUser._id : null
-                          if (selectedUser.id === primaryAdminId && selectedUser.id !== authUserId) {
-                            toast.error('Primary administrator status cannot be changed')
-                            return
-                          }
-                          handleStatusToggle(selectedUser.id, selectedUser.status)
-                        }}
-                        onKeyDown={(e) => {
-                          if (updatingUserId === selectedUser.id) return
-                          if (e.key === 'Enter' || e.key === ' ') {
-                            e.preventDefault()
+            <>
+              {/* User Information Card */}
+              <Card className="mb-3 border-0 shadow-sm">
+                <Card.Header className="bg-light border-0">
+                  <h6 className="mb-0 d-flex align-items-center gap-2">
+                    <IconifyIcon icon="solar:user-bold" width={20} height={20} className="text-primary" />
+                    User Information
+                  </h6>
+                </Card.Header>
+                <Card.Body>
+                  <Row className="g-3">
+                    <Col md={6}>
+                      <small className="text-muted d-block mb-1">Full Name</small>
+                      <h5 className="mb-0">{selectedUser.name}</h5>
+                    </Col>
+                    <Col md={6}>
+                      <small className="text-muted d-block mb-1">Status</small>
+                      <div className="d-flex align-items-center gap-2">
+                        {/* Status badge - interactive toggle */}
+                        {selectedUser.status !== 'invited' ? (
+                          <Badge
+                            role="button"
+                            tabIndex={0}
+                            bg={getStatusVariant(selectedUser.status)}
+                            className="text-capitalize d-inline-flex align-items-center gap-2"
+                            style={{
+                              cursor: updatingUserId === selectedUser.id ? 'not-allowed' : 'pointer',
+                              userSelect: 'none',
+                              opacity: (selectedUser.id === primaryAdminId && selectedUser.id !== (isOrgUser(authUser) ? authUser._id : null)) ? 0.5 : 1,
+                              filter: (selectedUser.id === primaryAdminId && selectedUser.id !== (isOrgUser(authUser) ? authUser._id : null)) ? 'grayscale(1)' : 'none',
+                              padding: '0.5rem 0.8rem',
+                              fontSize: '0.85rem'
+                            }}
+                            onClick={() => {
+                              if (updatingUserId === selectedUser.id) return
+                              const authUserId = isOrgUser(authUser) ? authUser._id : null
+                              if (selectedUser.id === primaryAdminId && selectedUser.id !== authUserId) {
+                                toast.error('Primary administrator status cannot be changed')
+                                return
+                              }
+                              handleStatusToggle(selectedUser.id, selectedUser.status)
+                            }}
+                            onKeyDown={(e) => {
+                              if (updatingUserId === selectedUser.id) return
+                              if (e.key === 'Enter' || e.key === ' ') {
+                                e.preventDefault()
+                                const authUserId = isOrgUser(authUser) ? authUser._id : null
+                                if (selectedUser.id === primaryAdminId && selectedUser.id !== authUserId) {
+                                  toast.error('Primary administrator status cannot be changed')
+                                  return
+                                }
+                                handleStatusToggle(selectedUser.id, selectedUser.status)
+                              }
+                            }}
+                            title={selectedUser.id === primaryAdminId && selectedUser.id !== (isOrgUser(authUser) ? authUser._id : null) ? "Primary Admin (Restricted)" : "Click to toggle status"}
+                          >
+                            {selectedUser.status}
+                            {updatingUserId === selectedUser.id ? (
+                              <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true" />
+                            ) : selectedUser.id === primaryAdminId ? null : (
+                              <IconifyIcon icon="solar:alt-arrow-right-linear" width={14} height={14} />
+                            )}
+                          </Badge>
+                        ) : (
+                          <Badge bg={getStatusVariant(selectedUser.status)} className="text-capitalize" style={{ padding: '0.5rem 0.8rem', fontSize: '0.85rem' }}>
+                            {selectedUser.status}
+                          </Badge>
+                        )}
+
+                        {/* Resend invite badge - interactive button */}
+                        {selectedUser.status === 'invited' && (
+                          <Badge
+                            role="button"
+                            tabIndex={0}
+                            bg="warning"
+                            text="dark"
+                            className="d-inline-flex align-items-center gap-2"
+                            style={{
+                              cursor: updatingUserId === selectedUser.id ? 'not-allowed' : 'pointer',
+                              userSelect: 'none',
+                              padding: '0.5rem 0.8rem',
+                              fontSize: '0.85rem'
+                            }}
+                            onClick={() => {
+                              if (updatingUserId === selectedUser.id) return
+                              handleResendInvite(selectedUser.id)
+                            }}
+                            onKeyDown={(e) => {
+                              if (updatingUserId === selectedUser.id) return
+                              if (e.key === 'Enter' || e.key === ' ') {
+                                e.preventDefault()
+                                handleResendInvite(selectedUser.id)
+                              }
+                            }}
+                            title="Click to resend invite"
+                          >
+                            {updatingUserId === selectedUser.id ? (
+                              <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true" />
+                            ) : (
+                              <IconifyIcon icon="solar:letter-linear" width={14} height={14} />
+                            )}
+                            Resend Invite
+                          </Badge>
+                        )}
+                      </div>
+                    </Col>
+                    <Col md={12}>
+                      <small className="text-muted d-block mb-1">Email Address</small>
+                      <strong>{selectedUser.email}</strong>
+                    </Col>
+                  </Row>
+                </Card.Body>
+              </Card>
+
+              {/* Role & Permissions Card */}
+              <Card className="mb-3 border-0 shadow-sm">
+                <Card.Header className="bg-light border-0">
+                  <h6 className="mb-0 d-flex align-items-center gap-2">
+                    <IconifyIcon icon="solar:shield-user-bold" width={20} height={20} className="text-primary" />
+                    Role & Permissions
+                  </h6>
+                </Card.Header>
+                <Card.Body>
+                  <Row className="g-3">
+                    <Col md={6}>
+                      <small className="text-muted d-block mb-1">Role</small>
+                      <div className="d-flex align-items-center gap-2">
+                        <div
+                          className="rounded-circle d-flex align-items-center justify-content-center"
+                          style={{
+                            width: 24,
+                            height: 24,
+                            background: '#F3E5F5',
+                            color: '#7B1FA2'
+                          }}
+                        >
+                          <IconifyIcon icon="solar:user-id-bold" width={14} height={14} />
+                        </div>
+                        <strong style={{ fontSize: '0.95rem' }}>{selectedUser.role_name}</strong>
+                      </div>
+                    </Col>
+                    <Col md={6}>
+                      <small className="text-muted d-block mb-1">Admin Status</small>
+                      <div className="d-flex align-items-center gap-2">
+                        {/* Admin badge - interactive toggle */}
+                        <Badge
+                          role="button"
+                          tabIndex={0}
+                          bg={selectedUser.is_admin ? 'primary' : 'secondary'}
+                          className="d-inline-flex align-items-center gap-2"
+                          style={{
+                            cursor: updatingUserId === selectedUser.id ? 'not-allowed' : 'pointer',
+                            userSelect: 'none',
+                            opacity: (selectedUser.id === primaryAdminId && selectedUser.id !== (isOrgUser(authUser) ? authUser._id : null)) ? 0.5 : 1,
+                            filter: (selectedUser.id === primaryAdminId && selectedUser.id !== (isOrgUser(authUser) ? authUser._id : null)) ? 'grayscale(1)' : 'none',
+                            padding: '0.5rem 0.8rem',
+                            fontSize: '0.85rem'
+                          }}
+                          onClick={() => {
+                            if (updatingUserId === selectedUser.id) return
                             const authUserId = isOrgUser(authUser) ? authUser._id : null
                             if (selectedUser.id === primaryAdminId && selectedUser.id !== authUserId) {
-                              toast.error('Primary administrator status cannot be changed')
+                              toast.error('Primary administrator privileges cannot be changed')
                               return
                             }
-                            handleStatusToggle(selectedUser.id, selectedUser.status)
-                          }
-                        }}
-                        title={selectedUser.id === primaryAdminId && selectedUser.id !== (isOrgUser(authUser) ? authUser._id : null) ? "Primary Admin (Restricted)" : "Click to toggle status"}
-                      >
-                        {selectedUser.status}
-                        {updatingUserId === selectedUser.id ? (
-                          <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true" />
-                        ) : selectedUser.id === primaryAdminId ? null : (
-                          <IconifyIcon icon="solar:alt-arrow-right-linear" width={14} height={14} />
-                        )}
-                      </Badge>
-                    ) : (
-                      // invited: keep as normal badge (no toggle)
-                      <Badge bg={getStatusVariant(selectedUser.status)} className="text-capitalize">
-                        {selectedUser.status}
-                      </Badge>
-                    )}
+                            handleAdminToggle(selectedUser.id, selectedUser.is_admin)
+                          }}
+                          onKeyDown={(e) => {
+                            if (updatingUserId === selectedUser.id) return
+                            if (e.key === 'Enter' || e.key === ' ') {
+                              e.preventDefault()
+                              const authUserId = isOrgUser(authUser) ? authUser._id : null
+                              if (selectedUser.id === primaryAdminId && selectedUser.id !== authUserId) {
+                                toast.error('Primary administrator privileges cannot be changed')
+                                return
+                              }
+                              handleAdminToggle(selectedUser.id, selectedUser.is_admin)
+                            }
+                          }}
+                          title={selectedUser.id === primaryAdminId && selectedUser.id !== (isOrgUser(authUser) ? authUser._id : null) ? "Primary Admin (Restricted)" : "Click to toggle admin status"}
+                        >
+                          {selectedUser.is_admin ? 'Admin' : 'Regular User'}
+                          {updatingUserId === selectedUser.id ? (
+                            <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true" />
+                          ) : selectedUser.id === primaryAdminId ? null : (
+                            <IconifyIcon icon="solar:refresh-linear" width={14} height={14} />
+                          )}
+                        </Badge>
+                      </div>
+                    </Col>
+                  </Row>
+                </Card.Body>
+              </Card>
 
-                    {/* invited: keep "Resend" as badge (optional) */}
-                    {selectedUser.status === 'invited' && (
-                      <Badge
-                        role="button"
-                        tabIndex={0}
-                        bg="warning"
-                        text="dark"
-                        className="d-inline-flex align-items-center gap-2"
-                        style={{ cursor: updatingUserId === selectedUser.id ? 'not-allowed' : 'pointer', userSelect: 'none' }}
-                        onClick={() => {
-                          if (updatingUserId === selectedUser.id) return
-                          handleResendInvite(selectedUser.id)
-                        }}
-                        onKeyDown={(e) => {
-                          if (updatingUserId === selectedUser.id) return
-                          if (e.key === 'Enter' || e.key === ' ') {
-                            e.preventDefault()
-                            handleResendInvite(selectedUser.id)
-                          }
-                        }}
-                        title="Click to resend invite"
-                      >
-                        {updatingUserId === selectedUser.id ? (
-                          <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true" />
-                        ) : (
-                          <IconifyIcon icon="solar:letter-linear" width={14} height={14} />
-                        )}
-                        Resend Invite
-                      </Badge>
-                    )}
-                  </div>
+              {/* Feature Access Card */}
+              <Card className="mb-3 border-0 shadow-sm">
+                <Card.Header className="bg-light border-0">
+                  <h6 className="mb-0 d-flex align-items-center gap-2">
+                    <IconifyIcon icon="solar:widget-bold" width={20} height={20} className="text-primary" />
+                    Feature Access ({selectedUser.features.length})
+                  </h6>
+                </Card.Header>
+                <Card.Body>
+                  {selectedUser.features.length > 0 ? (
+                    <div className="d-flex flex-wrap gap-2">
+                      {selectedUser.features.map(feature => {
+                        const featureInfo = AVAILABLE_FEATURES.find(f => f.value === feature)
+                        return (
+                          <div
+                            key={feature}
+                            className="d-flex align-items-center gap-2 px-2 py-1 rounded"
+                            style={{ fontSize: '0.85rem' }}
+                          >
+                            <div
+                              className="rounded-circle d-flex align-items-center justify-content-center"
+                              style={{ width: 20, height: 20, background: '#E1F5FE', color: '#0288D1' }}
+                            >
+                              <IconifyIcon icon="solar:check-circle-bold" width={12} height={12} />
+                            </div>
+                            <span className="fw-medium text-muted">{featureInfo?.label || feature}</span>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  ) : (
+                    <p className="text-muted mb-0 fst-italic">No features assigned</p>
+                  )}
+                </Card.Body>
+              </Card>
 
-                </Col>
-
-                <Col md={12}>
-                  <label className="text-muted small">Email Address</label>
-                  <div className="fw-medium">{selectedUser.email}</div>
-                </Col>
-                <Col md={6}>
-                  <label className="text-muted small">Role</label>
-                  <div>
-                    <Badge bg="light" text="dark">
-                      {selectedUser.role_name}
-                    </Badge>
-                  </div>
-                </Col>
-                <Col md={6}>
-                  <label className="text-muted small">Admin Status</label>
-                  <div className="d-flex align-items-center gap-2">
-                    <Badge
-                      role="button"
-                      tabIndex={0}
-                      bg={selectedUser.is_admin ? 'primary' : 'secondary'}
-                      className="d-inline-flex align-items-center gap-2"
-                      style={{ cursor: updatingUserId === selectedUser.id ? 'not-allowed' : 'pointer', userSelect: 'none', opacity: (selectedUser.id === primaryAdminId && selectedUser.id !== (isOrgUser(authUser) ? authUser._id : null)) ? 0.5 : 1, filter: (selectedUser.id === primaryAdminId && selectedUser.id !== (isOrgUser(authUser) ? authUser._id : null)) ? 'grayscale(1)' : 'none' }}
-                      onClick={() => {
-                        if (updatingUserId === selectedUser.id) return
-                        const authUserId = isOrgUser(authUser) ? authUser._id : null
-                        if (selectedUser.id === primaryAdminId && selectedUser.id !== authUserId) {
-                          toast.error('Primary administrator privileges cannot be changed')
-                          return
-                        }
-                        handleAdminToggle(selectedUser.id, selectedUser.is_admin)
-                      }}
-                      onKeyDown={(e) => {
-                        if (updatingUserId === selectedUser.id) return
-                        if (e.key === 'Enter' || e.key === ' ') {
-                          e.preventDefault()
-                          const authUserId = isOrgUser(authUser) ? authUser._id : null
-                          if (selectedUser.id === primaryAdminId && selectedUser.id !== authUserId) {
-                            toast.error('Primary administrator privileges cannot be changed')
-                            return
-                          }
-                          handleAdminToggle(selectedUser.id, selectedUser.is_admin)
-                        }
-                      }}
-                      title={selectedUser.id === primaryAdminId && selectedUser.id !== (isOrgUser(authUser) ? authUser._id : null) ? "Primary Admin (Restricted)" : "Click to toggle admin status"}
-                    >
-                      {selectedUser.is_admin ? 'Admin' : 'Regular User'}
-                      {updatingUserId === selectedUser.id ? (
-                        <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true" />
-                      ) : selectedUser.id === primaryAdminId ? null : (
-                        <IconifyIcon icon="solar:refresh-linear" width={14} height={14} />
-                      )}
-                    </Badge>
-                  </div>
-
-                </Col>
-              </Row>
-              <hr />
-              <div className="mb-3">
-                <label className="text-muted small">Feature Access ({selectedUser.features.length})</label>
-                <div className="d-flex flex-wrap gap-2 mt-2">
-                  {selectedUser.features.map(feature => {
-                    const featureInfo = AVAILABLE_FEATURES.find(f => f.value === feature)
-                    return (
-                      <Badge key={feature} bg="info" className="text-capitalize">
-                        {featureInfo?.label || feature}
-                      </Badge>
-                    )
-                  })}
-                </div>
-              </div>
-              <hr />
-              <Row className="g-3">
-                <Col md={6}>
-                  <label className="text-muted small">Created At</label>
-                  <div>{formatDate(selectedUser.created_at)}</div>
-                </Col>
-                <Col md={6}>
-                  <label className="text-muted small">Last Updated</label>
-                  <div>{formatDate(selectedUser.updated_at)}</div>
-                </Col>
-              </Row>
-            </div>
+              {/* Timeline Card */}
+              <Card className="border-0 shadow-sm">
+                <Card.Header className="bg-light border-0">
+                  <h6 className="mb-0 d-flex align-items-center gap-2">
+                    <IconifyIcon icon="solar:clock-circle-bold" width={20} height={20} className="text-primary" />
+                    Timeline
+                  </h6>
+                </Card.Header>
+                <Card.Body>
+                  <Row className="g-3">
+                    <Col md={6}>
+                      <small className="text-muted d-block mb-1">Created</small>
+                      <strong className="small">{formatDate(selectedUser.created_at)}</strong>
+                    </Col>
+                    <Col md={6}>
+                      <small className="text-muted d-block mb-1">Last Updated</small>
+                      <strong className="small">{formatDate(selectedUser.updated_at)}</strong>
+                    </Col>
+                  </Row>
+                </Card.Body>
+              </Card>
+            </>
           )}
         </Modal.Body>
         <Modal.Footer className="border-0">
