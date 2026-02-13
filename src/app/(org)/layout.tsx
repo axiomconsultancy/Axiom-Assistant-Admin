@@ -8,6 +8,7 @@ import AuthGuard from '@/lib/auth-guard'
 import { VerticalDebug } from '@/components/VerticalDebug'
 
 import GlobalRealtimeListener from '@/components/GlobalRealtimeListener'
+import { GlobalChatBot } from '@/components/chatbot'
 
 const TopNavigationBar = dynamic(() => import('@/components/layout/TopNavigationBar/page'))
 const VerticalNavigationBar = dynamic(() => import('@/components/layout/VerticalNavigationBar/page'))
@@ -23,9 +24,10 @@ const AdminLayout = ({ children }: ChildrenType) => {
         <VerticalNavigationBar />
         <div className="page-content">
           <Container fluid>
-            <GlobalRealtimeListener />       
+            <GlobalRealtimeListener />
             {children}
-            {/* <VerticalDebug /> */}     
+            <GlobalChatBot />
+            {/* <VerticalDebug /> */}
           </Container>
           <Footer />
         </div>

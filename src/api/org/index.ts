@@ -11,6 +11,7 @@ export * from './settings'
 export * from './profile'
 export * from './usage'
 export * from './analytics'
+export * from './chatbot'
 
 // Re-export individual APIs for convenient imports
 export { actionItemsApi } from './action-items'
@@ -23,3 +24,4 @@ export { orgSettingsApi } from './settings'
 export { profileApi } from './profile'
 export { usageApi } from './usage'
 export { analyticsApi } from './analytics'
+export { chatbotApi } from './chatbot'

@@ -377,27 +377,22 @@ const ContactSupportPage = () => {
           <Card className="h-100">
             <CardBody className="text-center">
               <IconifyIcon icon="solar:chat-round-linear" width={48} height={48} className="text-info mb-3" />
-              <h5>Live Chat</h5>
-              <p className="text-muted small">Chat with our support team in real-time.</p>
+              <h5>AI Chat Assistant</h5>
+              <p className="text-muted small">Get instant answers from our AI-powered support assistant.</p>
               <div className="mb-2">
                 <Badge bg="success" className="me-2">
                   <span className="badge-dot bg-white me-1"></span>
-                  Online
+                  Online 24/7
                 </Badge>
               </div>
-              <div className="text-muted small mb-2">Mon-Fri 9AM-6PM EST</div>
+              <div className="text-muted small mb-2">Instant responses, anytime</div>
               <Button
                 variant="outline-info"
                 size="sm"
-                onClick={() =>
-                  window.open(
-                    "https://wa.me/12092908464?text=" + encodeURIComponent("Hi! I need support."),
-                    "_blank"
-                  )
-                }
+                onClick={() => window.dispatchEvent(new CustomEvent('toggle-chatbot'))}
               >
                 <IconifyIcon icon="solar:chat-round-linear" width={16} height={16} className="me-1" />
-                Start Chat
+                Start AI Chat
               </Button>
             </CardBody>
           </Card>

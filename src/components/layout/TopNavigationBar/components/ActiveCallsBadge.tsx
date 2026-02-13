@@ -29,25 +29,16 @@ import { useActiveCalls } from '@/hooks/useActiveCalls'
 export const ActiveCallsBadge: React.FC = () => {
   const { activeCallsCount } = useActiveCalls()
 
-  // No active calls - show minimal badge or hide
+  // No active calls - hide
   if (activeCallsCount === 0) {
-    return (
-      <Badge 
-        bg="secondary" 
-        className="d-flex align-items-center gap-2 px-3 py-2"
-        style={{ opacity: 0.7 }}
-      >
-        <IconifyIcon icon="solar:phone-linear" width={16} height={16} />
-        <span className="fw-semibold small">No Active Calls</span>
-      </Badge>
-    )
+    return null
   }
 
-  // Active calls present - show with animation
+  // Active calls present - show with animation and pill rounding
   return (
-    <Badge 
-      bg="success" 
-      className="d-flex align-items-center gap-2 px-3 py-2 position-relative"
+    <Badge
+      bg="success"
+      className="d-flex align-items-center gap-2 px-3 py-2 position-relative rounded-pill"
     >
       {/* Pulsing indicator */}
       <span
@@ -59,15 +50,15 @@ export const ActiveCallsBadge: React.FC = () => {
           animation: 'pulse 2s ease-in-out infinite'
         }}
       />
-      
+
       {/* Phone icon */}
-      <IconifyIcon 
-        icon="solar:phone-calling-rounded-bold" 
-        width={18} 
+      <IconifyIcon
+        icon="solar:phone-calling-rounded-bold"
+        width={18}
         height={18}
         className="ms-1"
       />
-      
+
       {/* Count */}
       <span className="fw-bold">
         {activeCallsCount} {activeCallsCount === 1 ? 'Call' : 'Calls'} in Progress
