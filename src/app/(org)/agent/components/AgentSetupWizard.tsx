@@ -5,6 +5,7 @@ import React, { useState } from 'react'
 import { Modal, Button, Form, Row, Col, Badge, Alert, Card, ProgressBar } from 'react-bootstrap'
 import IconifyIcon from '@/components/wrapper/IconifyIcon'
 import { toast } from 'react-toastify'
+import { useAuth } from '@/context/useAuthContext'
 import type { AgentConfiguration } from '@/api/org/agents'
 
 interface WizardStep {
@@ -657,13 +658,19 @@ export const AgentSetupWizard: React.FC<AgentSetupWizardProps> = ({
   onSubmit,
   initialConfig
 }) => {
+  const { user } = useAuth()
+  const verticalKey = user && 'organization' in user ? user.organization?.vertical_key : undefined
+  const isHR = verticalKey === 'hr'
+  const complaintLabel = isHR ? 'Incident' : 'Complaint'
+  const complaintsLabel = isHR ? 'Incidents' : 'Complaints'
+
   const [currentStep, setCurrentStep] = useState(1)
   const [submitting, setSubmitting] = useState(false)
   const [config, setConfig] = useState<AgentConfiguration>({
     branding: {
       company_name: initialConfig?.branding?.company_name || 'Your Company Name',
       agent_name: initialConfig?.branding?.agent_name || 'Customer Care Assistant',
-      industry: initialConfig?.branding?.industry || 'Customer Support & Service',
+      industry: initialConfig?.branding?.industry || (isHR ? 'Human Resources' : 'Customer Support & Service'),
       brand_voice: initialConfig?.branding?.brand_voice || 'Friendly, professional, clear, and empathetic',
       phrases_to_use: initialConfig?.branding?.phrases_to_use || [
         'Thanks for calling',
@@ -693,15 +700,15 @@ export const AgentSetupWizard: React.FC<AgentSetupWizardProps> = ({
         'Scheduling / booking',
         'Order status / tracking',
         'Basic troubleshooting',
-        'Refund request intake',
-        'Discount/voucher request intake'
+        isHR ? 'Incident report intake' : 'Refund request intake',
+        isHR ? 'Leave request intake' : 'Discount/voucher request intake'
       ],
       max_compensation_value: initialConfig?.authority?.max_compensation_value || 0,
       approval_required_for: initialConfig?.authority?.approval_required_for || [
-        'Refund approvals',
-        'Discounts/vouchers over allowed limit',
+        isHR ? 'Policy changes' : 'Refund approvals',
+        isHR ? 'Salary adjustments' : 'Discounts/vouchers over allowed limit',
         'Account cancellations',
-        'Complaints requiring manager attention',
+        `${complaintsLabel} requiring manager attention`,
         'Anything involving payment/security'
       ],
       immediate_actions: initialConfig?.authority?.immediate_actions || [
@@ -710,33 +717,35 @@ export const AgentSetupWizard: React.FC<AgentSetupWizardProps> = ({
         'Schedule callback',
         'Escalate to human agent'
       ],
-      refund_policy: initialConfig?.authority?.refund_policy || 
-        'The agent can collect refund/compensation requests and create a ticket. Refund approvals are handled by the billing/support team after verification and policy checks.'
+      refund_policy: initialConfig?.authority?.refund_policy ||
+        (isHR
+          ? 'The agent can collect incident/leave requests and create a ticket. Approvals are handled by the HR team after verification and policy checks.'
+          : 'The agent can collect refund/compensation requests and create a ticket. Refund approvals are handled by the billing/support team after verification and policy checks.')
     },
     escalation: {
       escalation_triggers: initialConfig?.escalation?.escalation_triggers || [
         'Customer asks to speak with a human',
         'Angry / abusive language detected',
-        'Payment disputes, chargebacks, fraud concerns',
-        'Legal threats or data/privacy concerns',
+        isHR ? 'Legal threats or workplace safety concerns' : 'Payment disputes, chargebacks, fraud concerns',
+        isHR ? 'Harassment or discrimination claims' : 'Legal threats or data/privacy concerns',
         'Agent confidence is low after 2 attempts'
       ],
       escalation_email: initialConfig?.escalation?.escalation_email || 'support@yourcompany.com',
       escalation_phone: initialConfig?.escalation?.escalation_phone || '+1 (000) 000-0000',
       priority_levels: initialConfig?.escalation?.priority_levels || {
-        urgent: 'Safety risk, fraud, legal threat, payment breach',
-        high: 'Service down, repeated failures, VIP complaint',
-        medium: 'Standard complaint, delayed delivery, refund request',
+        urgent: isHR ? 'Safety risk, harassment, legal threat' : 'Safety risk, fraud, legal threat, payment breach',
+        high: isHR ? 'Critical workplace issue, VIP concern' : 'Service down, repeated failures, VIP complaint',
+        medium: `Standard ${complaintLabel.toLowerCase()}, policy inquiry, request`,
         low: 'General inquiries, FAQs, basic requests'
       },
       department_routing: initialConfig?.escalation?.department_routing || {
-        'Billing & Payments': 'Billing Support',
-        'Refund Requests': 'Finance',
+        'Billing & Payments': isHR ? 'Payroll' : 'Billing Support',
+        'Refund Requests': isHR ? 'Benefits' : 'Finance',
         'Technical Issues': 'Tech Support',
-        'Complaints': 'Customer Success',
-        'New Sales Leads': 'Sales Team'
+        [complaintsLabel]: isHR ? 'Employee Relations' : 'Customer Success',
+        'New Sales Leads': isHR ? 'Recruitment' : 'Sales Team'
       },
-      after_hours_handling: initialConfig?.escalation?.after_hours_handling || 
+      after_hours_handling: initialConfig?.escalation?.after_hours_handling ||
         'Take message + create ticket + schedule callback'
     },
     data_compliance: {
@@ -756,7 +765,7 @@ export const AgentSetupWizard: React.FC<AgentSetupWizardProps> = ({
         'PCI-DSS (do not collect card numbers)'
       ],
       data_retention_days: initialConfig?.data_compliance?.data_retention_days || 90,
-      verification_process: initialConfig?.data_compliance?.verification_process || 
+      verification_process: initialConfig?.data_compliance?.verification_process ||
         'Verify the caller using at least 2 data points: phone number + order/booking ID OR email confirmation.'
     },
     knowledge_base: {
@@ -767,8 +776,8 @@ export const AgentSetupWizard: React.FC<AgentSetupWizardProps> = ({
         'Check order status / tracking',
         'Change appointment date/time',
         'Pricing inquiry',
-        'Refund request',
-        'Complaint about service/product'
+        isHR ? 'Leave request' : 'Refund request',
+        `${complaintLabel} about service/product`
       ],
       company_policies: initialConfig?.knowledge_base?.company_policies || [
         'Return policy',
@@ -776,7 +785,7 @@ export const AgentSetupWizard: React.FC<AgentSetupWizardProps> = ({
         'Cancellation policy',
         'Terms & conditions'
       ],
-      pricing_info: initialConfig?.knowledge_base?.pricing_info || 
+      pricing_info: initialConfig?.knowledge_base?.pricing_info ||
         'Show "starting from" pricing only unless exact pricing is provided.'
     },
     integrations: {
@@ -789,16 +798,16 @@ export const AgentSetupWizard: React.FC<AgentSetupWizardProps> = ({
       webhook_urls: initialConfig?.integrations?.webhook_urls || []
     },
     call_experience: {
-      hold_message: initialConfig?.call_experience?.hold_message || 
+      hold_message: initialConfig?.call_experience?.hold_message ||
         'Thanks for holding, we\'ll be right with you.',
       transfer_type: initialConfig?.call_experience?.transfer_type || 'warm',
-      voicemail_handling: initialConfig?.call_experience?.voicemail_handling || 
+      voicemail_handling: initialConfig?.call_experience?.voicemail_handling ||
         'Take message + send email + create ticket',
       post_call_actions: initialConfig?.call_experience?.post_call_actions || [
         'Send call summary email (internal)',
         'Create ticket automatically'
       ],
-      callback_preference: initialConfig?.call_experience?.callback_preference || 
+      callback_preference: initialConfig?.call_experience?.callback_preference ||
         'Within 24 hours via phone (preferred)'
     },
     analytics: {

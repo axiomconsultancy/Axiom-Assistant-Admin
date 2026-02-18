@@ -44,29 +44,57 @@ export const getAccessibleMenuItems = (
 
   const verticalKey = user.organization?.vertical_key
 
-  return menuItems.filter(item => {
-    // Always show menu titles
-    if (item.isTitle) return true
+  return menuItems
+    .filter(item => {
+      // Always show menu titles
+      if (item.isTitle) return true
 
-    // Step 1: Check vertical access (APPLIES TO EVERYONE including admins)
-    if (!isMenuAllowedForVertical(item.key, verticalKey)) {
-      return false
-    }
+      // Step 1: Check vertical access (APPLIES TO EVERYONE including admins)
+      if (!isMenuAllowedForVertical(item.key, verticalKey)) {
+        return false
+      }
 
-    // Step 2: Admins see all items that pass vertical check
-    if (user.is_admin) return true
+      // Step 2: Admins see all items that pass vertical check
+      if (user.is_admin) return true
 
-    // Step 3: Check feature access for non-admins
-    // No URL → safe to show
-    if (!item.url) return true
+      // Step 3: Check feature access for non-admins
+      // No URL → safe to show
+      if (!item.url) return true
 
-    const requiredFeature = PAGE_FEATURES[item.url]
+      const requiredFeature = PAGE_FEATURES[item.url]
 
-    // No feature mapping → public item
-    if (!requiredFeature) return true
+      // No feature mapping → public item
+      if (!requiredFeature) return true
 
-    return user.features?.includes(requiredFeature)
-  })
+      return user.features?.includes(requiredFeature)
+    })
+    .map(item => {
+      // HR vertical specific: show complaints as Incident Reports
+      if (verticalKey === 'hr' && item.key === 'complaints') {
+        const newItem = {
+          ...item,
+          label: 'Incident Reports',
+          icon: 'solar:document-text-outline',
+          // Keep the /complaints URL, don't redirect to /incidents-reports
+        }
+
+        // Also update children labels if they exist
+        if (newItem.children) {
+          newItem.children = newItem.children.map(child => {
+            if (child.key.includes('complaints')) {
+              return {
+                ...child,
+                label: child.label.replace('Complaints', 'Incidents').replace('Complaint', 'Incident'),
+                // Keep the original URL
+              }
+            }
+            return child
+          })
+        }
+        return newItem
+      }
+      return item
+    })
 }
 
 /* ================================

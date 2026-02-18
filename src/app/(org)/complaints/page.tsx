@@ -15,6 +15,7 @@ import { callLogsApi, type CallLog } from '@/api/org/call-logs'
 import { locationsApi, type Location } from '@/api/org/locations'
 import { useFeatureGuard } from '@/hooks/useFeatureGuard'
 import { useRealtimeRefresh } from '@/hooks/useRealtimeRefresh'
+import { IncidentDescriptionViewer } from '@/components/IncidentDescriptionViewer'
 
 // Custom Status Dropdown Component
 const StatusDropdown = ({
@@ -197,9 +198,21 @@ const ProgressButton = ({
 
 const ComplaintsPage = () => {
   useFeatureGuard()
-  const { token, isAuthenticated } = useAuth()
+  const { token, isAuthenticated, user } = useAuth()
   const router = useRouter()
   const searchParams = useSearchParams()
+
+  const verticalKey = user && 'organization' in user ? user.organization?.vertical_key : undefined
+  const isHR = verticalKey === 'hr'
+
+  const terminology = {
+    complaint: isHR ? 'Incident' : 'Complaint',
+    complaints: isHR ? 'Incidents' : 'Complaints',
+    incident_report: isHR ? 'Incident Report' : 'Complaint',
+    incident_reports: isHR ? 'Incident Reports' : 'Complaints',
+    issue_type: isHR ? 'Incident Type' : 'Issue Type',
+    description: isHR ? 'Incident Details' : 'Description',
+  }
 
   const [complaints, setComplaints] = useState<Complaint[]>([])
   const [loading, setLoading] = useState(false)
@@ -598,10 +611,10 @@ const ComplaintsPage = () => {
   }
 
   const getPageTitle = () => {
-    if (statusFilter === 'pending') return 'New Complaints'
-    if (statusFilter === 'in_progress') return 'Complaints In Progress'
-    if (statusFilter === 'resolved') return 'Resolved Complaints'
-    return 'Customer Complaints'
+    if (statusFilter === 'pending') return `New ${terminology.complaints}`
+    if (statusFilter === 'in_progress') return `${terminology.complaints} In Progress`
+    if (statusFilter === 'resolved') return `Resolved ${terminology.complaints}`
+    return isHR ? terminology.incident_reports : 'Customer Complaints'
   }
 
   const dataTableColumns: DataTableColumn<Complaint>[] = useMemo(
@@ -676,11 +689,11 @@ const ComplaintsPage = () => {
       },
       {
         key: 'complaint_type',
-        header: 'Issue Type',
+        header: terminology.issue_type,
         minWidth: 150,
         render: (complaint) => (
           <div>
-            <div className="fw-semibold mb-1">{complaint.complaint_type || 'General Complaint'}</div>
+            <div className="fw-semibold mb-1">{complaint.complaint_type || (isHR ? 'General Incident' : 'General Complaint')}</div>
             {complaint.receipt_status !== 'unknown' && (
               <small className="text-muted" style={{ fontSize: '0.8rem' }}>
                 Receipt: <span className="text-capitalize">{complaint.receipt_status}</span>
@@ -738,7 +751,7 @@ const ComplaintsPage = () => {
       },
       {
         key: 'status',
-        header: 'Complaint Status',
+        header: `${terminology.complaint} Status`,
         width: 180,
         align: 'left',
         sticky: 'right',
@@ -961,7 +974,7 @@ const ComplaintsPage = () => {
                 <div className="mx-1" style={{ height: 24, paddingRight: '8px' }}>
                   <IconifyIcon icon="bx:chevron-right" height={16} width={16} />
                 </div>
-                <li className="breadcrumb-item active">Complaints</li>
+                <li className="breadcrumb-item active">{terminology.complaints}</li>
               </ol>
             </div>
           </div>
@@ -972,7 +985,7 @@ const ComplaintsPage = () => {
           <DataTable
             id="complaints-table"
             title={getPageTitle()}
-            description="Track and manage customer complaints across all locations"
+            description={`Track and manage ${terminology.complaint.toLowerCase()} reports across all locations`}
             columns={dataTableColumns}
             data={complaints}
             rowKey={(complaint) => complaint.id}
@@ -1132,10 +1145,10 @@ const ComplaintsPage = () => {
               endRecord: Math.min(startIndex + pageSize, total)
             }}
             emptyState={{
-              title: 'No Complaints Found',
+              title: `No ${terminology.complaints} Found`,
               description: debouncedSearch
                 ? 'Try adjusting your search or filter criteria to find what you\'re looking for.'
-                : 'There are no customer complaints at this time. New complaints will appear here.'
+                : `There are no ${terminology.complaint.toLowerCase()} reports at this time. New ${terminology.complaints.toLowerCase()} will appear here.`
             }}
           />
         </Col>
@@ -1149,7 +1162,7 @@ const ComplaintsPage = () => {
         centered
       >
         <Modal.Header closeButton className="border-0 pb-0">
-          <Modal.Title className="fw-bold">Complaint Details</Modal.Title>
+          <Modal.Title className="fw-bold">{terminology.incident_report} Details</Modal.Title>
         </Modal.Header>
         <Modal.Body className="pt-3">
           {selectedComplaint && (
@@ -1261,30 +1274,36 @@ const ComplaintsPage = () => {
                 <Card.Header className="bg-light border-0">
                   <h6 className="mb-0 d-flex align-items-center gap-2">
                     <IconifyIcon icon="solar:document-text-bold" width={20} height={20} className="text-primary" />
-                    Issue Details
+                    {isHR ? 'Incident Report' : 'Issue Details'}
                   </h6>
                 </Card.Header>
                 <Card.Body>
-                  <Row className="g-3">
-                    <Col md={6}>
-                      <small className="text-muted d-block mb-1">Issue Type</small>
-                      <strong>{selectedComplaint.complaint_type || 'General Complaint'}</strong>
-                    </Col>
-                    <Col md={6}>
-                      <small className="text-muted d-block mb-1">Receipt Status</small>
-                      <strong className="text-capitalize">{(!selectedComplaint.receipt_status || selectedComplaint.receipt_status.toLowerCase() === 'unknown') ? 'Not Mentioned' : selectedComplaint.receipt_status}</strong>
-                    </Col>
-                    <Col md={6}>
-                      <small className="text-muted d-block mb-1">Delivery Method</small>
-                      <strong className="text-capitalize">{selectedComplaint.delivery_method || 'Not specified'}</strong>
-                    </Col>
-                    <Col xs={12}>
-                      <small className="text-muted d-block mb-2">Description</small>
-                      <p className="mb-0 p-3 bg-light rounded">
-                        {selectedComplaint.complaint_description || 'No description provided'}
-                      </p>
-                    </Col>
-                  </Row>
+                  {isHR ? (
+                    <IncidentDescriptionViewer
+                      description={selectedComplaint.complaint_description || 'No description provided'}
+                    />
+                  ) : (
+                    <Row className="g-3">
+                      <Col md={6}>
+                        <small className="text-muted d-block mb-1">{terminology.issue_type}</small>
+                        <strong>{selectedComplaint.complaint_type || 'General Complaint'}</strong>
+                      </Col>
+                      <Col md={6}>
+                        <small className="text-muted d-block mb-1">Receipt Status</small>
+                        <strong className="text-capitalize">{(!selectedComplaint.receipt_status || selectedComplaint.receipt_status.toLowerCase() === 'unknown') ? 'Not Mentioned' : selectedComplaint.receipt_status}</strong>
+                      </Col>
+                      <Col md={6}>
+                        <small className="text-muted d-block mb-1">Delivery Method</small>
+                        <strong className="text-capitalize">{selectedComplaint.delivery_method || 'Not specified'}</strong>
+                      </Col>
+                      <Col xs={12}>
+                        <small className="text-muted d-block mb-2">Description</small>
+                        <p className="mb-0 p-3 bg-light rounded">
+                          {selectedComplaint.complaint_description || 'No description provided'}
+                        </p>
+                      </Col>
+                    </Row>
+                  )}
                 </Card.Body>
               </Card>
 

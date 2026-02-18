@@ -14,7 +14,8 @@ import { ordersApi } from '@/api/org/orders'
 import { orgUsersApi } from '@/api/org/users'
 import { supportApi } from '@/api/org/support'
 import { complaintsApi } from '@/api/org/complaints'
-
+import { useAuth } from '@/context/useAuthContext'
+import { isOrgUser } from '@/types/auth'
 
 import dynamic from 'next/dynamic'
 
@@ -52,6 +53,10 @@ const CustomStyles = () => (
 )
 
 const DashboardPage = () => {
+  const { user } = useAuth()
+  const isHR = isOrgUser(user) && user.organization?.vertical_key === 'hr'
+  const complaintLabel = isHR ? 'Incident Reports' : 'Complaints'
+
   const [period, setPeriod] = useState<AnalyticsPeriod>('last_7_days')
   const [dashboard, setDashboard] = useState<DashboardResponse | null>(null)
   const [actionStats, setActionStats] = useState<any>(null)
@@ -811,7 +816,7 @@ const DashboardPage = () => {
         </Col>
       </Row>
 
-      {/* Row 2: Complaints */}
+      {/* Row 2: Complaints / Incident Reports */}
       <Row className="">
         <Col lg={3} md={6}>
           <Card className="border-0 shadow-sm  transition-all hover-shadow">
@@ -823,7 +828,7 @@ const DashboardPage = () => {
                   </div>
                 </div>
                 <div className="flex-grow-1 ms-3">
-                  <p className="text-muted mb-1 small uppercase tracking-wider font-semibold">Resolved Complaints</p>
+                  <p className="text-muted mb-1 small uppercase tracking-wider font-semibold">Resolved {complaintLabel}</p>
                   <h4 className="mb-0 font-bold">{complaintsStats?.resolved_complaints || 0}</h4>
                   <small className="text-muted">Total processed</small>
                 </div>
@@ -842,7 +847,7 @@ const DashboardPage = () => {
                   </div>
                 </div>
                 <div className="flex-grow-1 ms-3">
-                  <p className="text-muted mb-1 small uppercase tracking-wider font-semibold">Pending Complaints</p>
+                  <p className="text-muted mb-1 small uppercase tracking-wider font-semibold">Pending {complaintLabel}</p>
                   <h4 className="mb-0 font-bold">{complaintsStats?.by_status?.pending || 0}</h4>
                   <small className="text-muted">Awaiting action</small>
                 </div>
@@ -861,7 +866,7 @@ const DashboardPage = () => {
                   </div>
                 </div>
                 <div className="flex-grow-1 ms-3">
-                  <p className="text-muted mb-1 small uppercase tracking-wider font-semibold">Urgent Complaints</p>
+                  <p className="text-muted mb-1 small uppercase tracking-wider font-semibold">Urgent {complaintLabel}</p>
                   <h4 className="mb-0 font-bold">{complaintsStats?.urgent_complaints || 0}</h4>
                   <small className="text-danger">High priority</small>
                 </div>

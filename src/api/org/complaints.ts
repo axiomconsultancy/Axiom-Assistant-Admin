@@ -60,6 +60,7 @@ export interface Complaint {
   escalation: ComplaintEscalation
   status: ComplaintStatus
   assigned_to_user_id?: string
+  questions_asked?: string[]
   created_at: string
   updated_at: string
 }

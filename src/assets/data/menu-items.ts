@@ -82,12 +82,6 @@ export const PLATFORM_MENU_ITEMS: MenuItemType[] = [
     url: '/action-items',
   },
   {
-    key: 'incident-reports',
-    label: 'Incident Reports',
-    icon: 'solar:document-text-outline',
-    url: '/incident-reports',
-  },
-  {
     key: 'appointments',
     label: 'Appointments',
     icon: 'solar:calendar-outline',
@@ -204,12 +198,6 @@ export const ORG_MENU_ITEMS: MenuItemType[] = [
     label: 'Orders',
     icon: 'solar:box-linear',
     url: '/orders',
-  },
-  {
-    key: 'incident-reports',
-    label: 'Incident Reports',
-    icon: 'solar:document-text-outline',
-    url: '/incidents-reports',
   },
   {
     key: 'appointments',

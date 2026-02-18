@@ -84,7 +84,7 @@ export const VERTICAL_CONFIGS: Record<string, VerticalConfig> = {
     name: 'Human Resources',
     allowedMenuKeys: [
       ...COMMON_MENU_ITEMS,
-      'incident-reports',
+      'complaints',
     ],
     features: {
       showAppEnabler: false

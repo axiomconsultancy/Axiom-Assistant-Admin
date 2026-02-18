@@ -6,6 +6,7 @@ import { Modal, Button, Form, Row, Col, Alert, Card, Spinner, Badge } from 'reac
 import IconifyIcon from '@/components/wrapper/IconifyIcon'
 import { toast } from 'react-toastify'
 import { agentConfigApi, type QuickSetupAnswers } from '@/api/org/agents'
+import { useAuth } from '@/context/useAuthContext'
 import type { AgentConfiguration } from '@/api/org/agents'
 
 interface QuickSetupWizardProps {
@@ -21,6 +22,12 @@ export const QuickSetupWizard: React.FC<QuickSetupWizardProps> = ({
   onHide,
   onConfigGenerated
 }) => {
+  const { user } = useAuth()
+  const verticalKey = user && 'organization' in user ? user.organization?.vertical_key : undefined
+  const isHR = verticalKey === 'hr'
+  const complaintLabel = isHR ? 'Incident' : 'Complaint'
+  const complainsLabel = isHR ? 'incidents' : 'complaints'
+
   const [mode, setMode] = useState<SetupMode>('choice')
   const [loading, setLoading] = useState(false)
 
@@ -41,8 +48,8 @@ export const QuickSetupWizard: React.FC<QuickSetupWizardProps> = ({
 
   const handleQuickQuestionsSubmit = async () => {
     // Validate required fields
-    if (!answers.company_name || !answers.industry || !answers.business_description || 
-        !answers.primary_service || !answers.target_audience) {
+    if (!answers.company_name || !answers.industry || !answers.business_description ||
+      !answers.primary_service || !answers.target_audience) {
       toast.error('Please fill in all required fields')
       return
     }
@@ -52,13 +59,13 @@ export const QuickSetupWizard: React.FC<QuickSetupWizardProps> = ({
 
     try {
       const result = await agentConfigApi.generateFromAnswers(answers)
-      
+
       if (result.parse_status === 'success' && result.configuration) {
         toast.success('✨ Agent configuration generated successfully!')
-        
+
         // IMPORTANT: Pass the configuration to parent immediately
         onConfigGenerated(result.configuration)
-        
+
         // Don't call onHide() here - let parent handle it after setting state
       } else {
         toast.error(result.error_message || 'Failed to generate configuration')
@@ -84,13 +91,13 @@ export const QuickSetupWizard: React.FC<QuickSetupWizardProps> = ({
 
     try {
       const result = await agentConfigApi.parseFromDescription(description)
-      
+
       if (result.parse_status === 'success' && result.configuration) {
         toast.success('✨ Agent configuration generated successfully!')
-        
+
         // IMPORTANT: Pass the configuration to parent immediately
         onConfigGenerated(result.configuration)
-        
+
         // Don't call onHide() here - let parent handle it after setting state
       } else {
         toast.error(result.error_message || 'Failed to generate configuration')
@@ -126,10 +133,10 @@ export const QuickSetupWizard: React.FC<QuickSetupWizardProps> = ({
   const renderModeSelection = () => (
     <div className="text-center py-4">
       <h5 className="mb-4">How would you like to set up your AI agent?</h5>
-      
+
       <Row className="g-3">
         <Col md={6}>
-          <Card 
+          <Card
             className="h-100 border-primary cursor-pointer hover-shadow"
             onClick={() => setMode('quick-questions')}
             style={{ cursor: 'pointer', transition: 'all 0.2s' }}
@@ -146,7 +153,7 @@ export const QuickSetupWizard: React.FC<QuickSetupWizardProps> = ({
         </Col>
 
         <Col md={6}>
-          <Card 
+          <Card
             className="h-100 border-secondary cursor-pointer hover-shadow"
             onClick={() => setMode('natural-language')}
             style={{ cursor: 'pointer', transition: 'all 0.2s' }}
@@ -295,6 +302,25 @@ export const QuickSetupWizard: React.FC<QuickSetupWizardProps> = ({
     </div>
   )
 
+  const renderNaturalLanguagePlaceholder = `Example:
+
+I run a ${isHR ? 'human resources department' : 'pizza delivery business'} called "${isHR ? 'Axiom HR' : "Tony's Pizza"}" in Chicago. We're open 7 days a week from 11 AM to 11 PM. 
+
+The agent should handle:
+- ${isHR ? 'Taking employee reports' : 'Taking orders for pizzas, sides, and drinks'}
+- Answering questions about our ${isHR ? 'policies and benefits' : 'menu and prices'}
+- ${isHR ? 'Tracking existing reports' : 'Tracking existing orders'}
+- Handling ${complainsLabel} about ${isHR ? 'workplace incidents' : 'late deliveries or wrong orders'}
+
+The agent should NOT:
+- Process payments (we use online payment only)
+- Approve refunds (escalate to manager)
+- Change delivery addresses after order is placed
+
+Our typical customers are ${isHR ? 'employees' : 'families ordering dinner'}. We want a ${isHR ? 'professional and empathetic' : 'friendly, casual'} tone. If someone is ${isHR ? 'reporting a sensitive issue' : 'angry about a late delivery'}, the agent should ${isHR ? 'listen carefully' : 'apologize'} and offer to create a ${complaintLabel.toLowerCase()} ticket for our manager to review.
+
+We have 3 store locations and delivery takes 30-45 minutes typically.`
+
   const renderNaturalLanguage = () => (
     <div>
       <Alert variant="info" className="mb-4">
@@ -309,28 +335,11 @@ export const QuickSetupWizard: React.FC<QuickSetupWizardProps> = ({
           rows={10}
           value={description}
           onChange={(e) => setDescription(e.target.value)}
-          placeholder={`Example:
-
-I run a pizza delivery business called "Tony's Pizza" in Chicago. We're open 7 days a week from 11 AM to 11 PM. 
-
-The agent should handle:
-- Taking orders for pizzas, sides, and drinks
-- Answering questions about our menu and prices
-- Tracking existing orders
-- Handling complaints about late deliveries or wrong orders
-
-The agent should NOT:
-- Process payments (we use online payment only)
-- Approve refunds (escalate to manager)
-- Change delivery addresses after order is placed
-
-Our typical customers are families ordering dinner. We want a friendly, casual tone. If someone is angry about a late delivery, the agent should apologize and offer to create a complaint ticket for our manager to review.
-
-We have 3 store locations and delivery takes 30-45 minutes typically.`}
+          placeholder={renderNaturalLanguagePlaceholder}
           style={{ minHeight: '300px' }}
         />
         <Form.Text className="text-muted">
-          Minimum 50 characters. Include: what your business does, what the agent should handle, 
+          Minimum 50 characters. Include: what your business does, what the agent should handle,
           what it should not do, your tone preferences, and any special rules.
         </Form.Text>
       </Form.Group>
@@ -381,8 +390,8 @@ We have 3 store locations and delivery takes 30-45 minutes typically.`}
           </Button>
 
           {mode === 'quick-questions' && (
-            <Button 
-              variant="primary" 
+            <Button
+              variant="primary"
               onClick={handleQuickQuestionsSubmit}
               disabled={loading}
             >
@@ -392,8 +401,8 @@ We have 3 store locations and delivery takes 30-45 minutes typically.`}
           )}
 
           {mode === 'natural-language' && (
-            <Button 
-              variant="primary" 
+            <Button
+              variant="primary"
               onClick={handleNaturalLanguageSubmit}
               disabled={loading}
             >

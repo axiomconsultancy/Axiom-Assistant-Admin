@@ -126,7 +126,7 @@ const CallRecordsPage = () => {
   useFeatureGuard()
 
   const shownNotifications = useRef<Set<string>>(new Set())
-  const { token, isAuthenticated } = useAuth()
+  const { token, isAuthenticated, user } = useAuth()
   const searchParams = useSearchParams()
   const router = useRouter()
   const openCallId = searchParams.get('openCallId')
@@ -135,6 +135,11 @@ const CallRecordsPage = () => {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [total, setTotal] = useState(0)
+
+  const verticalKey = user && 'organization' in user ? user.organization?.vertical_key : undefined
+  const isHR = verticalKey === 'hr'
+  const complaintLabel = isHR ? 'Incident' : 'Complaint'
+  const complaintsLabel = isHR ? 'Incidents' : 'Complaints'
 
   const [locations, setLocations] = useState<Location[]>([])
   const [loadingLocations, setLoadingLocations] = useState(false)
@@ -159,6 +164,7 @@ const CallRecordsPage = () => {
 
   const [hasAutoOpened, setHasAutoOpened] = useState(false)
   const [openedFromComplaints, setOpenedFromComplaints] = useState(false)
+  const [openedFromIncidents, setOpenedFromIncidents] = useState(false)
 
   const [playingId, setPlayingId] = useState<string | null>(null)
   const [playProgress, setPlayProgress] = useState<Record<string, number>>({})
@@ -404,6 +410,7 @@ const CallRecordsPage = () => {
       if (openCallId && token && isAuthenticated && !hasAutoOpened) {
         setHasAutoOpened(true)
         setOpenedFromComplaints(true)
+        if (isHR) setOpenedFromIncidents(true)
 
         try {
           const callLog = await callLogsApi.getById(openCallId)
@@ -1072,8 +1079,8 @@ const CallRecordsPage = () => {
                 >
                   <IconifyIcon icon="solar:info-circle-bold" width={28} height={28} style={{ color: '#1976D2' }} className="me-3" />
                   <div className="flex-grow-1">
-                    <strong style={{ color: '#1565C0' }}>Linked from Customer Complaint</strong>
-                    <p className="mb-0 small text-muted mt-1">This call was referenced in a related complaint case</p>
+                    <strong style={{ color: '#1565C0' }}>Linked from Customer {complaintLabel}</strong>
+                    <p className="mb-0 small text-muted mt-1">This call was referenced in a related {complaintLabel.toLowerCase()} case</p>
                   </div>
                   <Button
                     variant="outline-primary"
@@ -1082,7 +1089,7 @@ const CallRecordsPage = () => {
                     style={{ borderRadius: '8px' }}
                   >
                     <IconifyIcon icon="solar:arrow-left-bold" width={16} height={16} className="me-2" />
-                    Back to Complaints
+                    Back to {complaintsLabel}
                   </Button>
                 </div>
               )}
@@ -1173,7 +1180,7 @@ const CallRecordsPage = () => {
                     </Col>
                     <Col md={4}>
                       <small className="text-muted d-block mb-1">Call Outcome</small>
-                      <div className="d-flex align-items-center gap-2 px-2 py-1 rounded" style={{ border: '1px solid #e0e0e0', width: 'fit-content' }}>
+                      <div className="d-flex align-items-center gap-2 px-2 py-1 rounded" style={{ width: 'fit-content' }}>
                         <div
                           className="rounded-circle d-flex align-items-center justify-content-center"
                           style={{
@@ -1196,7 +1203,7 @@ const CallRecordsPage = () => {
                     </Col>
                     <Col md={4}>
                       <small className="text-muted d-block mb-1">Review Status</small>
-                      <div className="d-flex align-items-center gap-2 px-2 py-1 rounded" style={{ border: '1px solid #e0e0e0', width: 'fit-content' }}>
+                      <div className="d-flex align-items-center gap-2 px-2 py-1 rounded" style={{ width: 'fit-content' }}>
                         <div
                           className="rounded-circle d-flex align-items-center justify-content-center"
                           style={{
@@ -1323,7 +1330,7 @@ const CallRecordsPage = () => {
                     className="d-flex align-items-center"
                   >
                     <IconifyIcon icon="solar:clipboard-list-bold" width={18} height={18} className="me-2" />
-                    View Complaint
+                    View {complaintLabel}
                   </Button>
                 </Link>
                 <Link href={`/action-items?call_id=${selectedCall.id}`} passHref legacyBehavior>
@@ -1347,7 +1354,7 @@ const CallRecordsPage = () => {
                 style={{ borderRadius: '8px' }}
               >
                 <IconifyIcon icon="solar:arrow-left-bold" width={18} height={18} className="me-2" />
-                Back to Complaints
+                Back to {complaintsLabel}
               </Button>
             )}
             <Button
